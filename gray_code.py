@@ -48,13 +48,12 @@ def generate_bit_plane_image(bit_plane, is_horizontal, width, height):
     if is_horizontal:
         for x in range(width):
             im_arr[:, x] = bit_plane[x]
+    else:
+        for y in range(height):
+            im_arr[y, :] = bit_plane[y]
 
     im_arr = im_arr * 255
     im_arr = im_arr.astype(np.uint8)
-
-    # print(im_arr)
-    # im_arr = im_arr[:, :, np.newaxis]
-    # print(im_arr)
     im = Image.fromarray(im_arr)
     return im
 
@@ -70,7 +69,11 @@ if __name__ == "__main__":
 
     # Render the bit planes to images.
     for bit_plane_num in range(bit_planes.shape[0]):
-
         bit_plane = bit_planes[bit_plane_num, :]
         im = generate_bit_plane_image(bit_plane, True, width, height)
         im.save("horizontal_%d.png" % (bit_plane_num))
+
+    for bit_plane_num in range(bit_planes.shape[0]):
+        bit_plane = bit_planes[bit_plane_num, :]
+        im = generate_bit_plane_image(bit_plane, False, width, height)
+        im.save("vertical_%d.png" % (bit_plane_num))
