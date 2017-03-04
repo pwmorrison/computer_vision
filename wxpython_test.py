@@ -1,41 +1,5 @@
 import wx
 
-class MyPanel(wx.Panel):
-    """"""
-
-    def __init__(self, parent):
-        """"""
-        wx.Panel.__init__(self, parent)
-
-    def OnPaint(self, event):
-        """set up the device context (DC) for painting"""
-        dc = wx.PaintDC(self)
-
-        #blue non-filled rectangle
-        dc.SetPen(wx.Pen("blue"))
-        dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
-        dc.DrawRectangle(10,10,200,200)
-
-        #red filled rectangle
-        dc.SetPen(wx.Pen("red"))
-        dc.SetBrush(wx.Brush("red"))
-        dc.DrawRectangle(220,10,200,200)
-
-class MyFrame(wx.Frame):
-    """"""
-
-    def __init__(self):
-        """"""
-        wx.Frame.__init__(self, None, title="Test Maximize")
-        panel = MyPanel(self)
-        self.Show()
-        self.Maximize(True)
-
-def test_1():
-    app = wx.App(False)
-    frame = MyFrame()
-    app.MainLoop()
-
 myEVT_CUSTOM = wx.NewEventType()
 EVT_CUSTOM = wx.PyEventBinder(myEVT_CUSTOM, 1)
 class MyEvent(wx.PyCommandEvent):
@@ -58,16 +22,6 @@ class MyPanel2(wx.Panel):
         self.SetBackgroundColour("white")
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
-    # def OnPaint(self, evt):
-    #     """set up the device context (DC) for painting"""
-    #     self.dc = wx.PaintDC(self)
-    #     self.dc.BeginDrawing()
-    #     self.dc.SetPen(wx.Pen("red",style=wx.TRANSPARENT))
-    #     self.dc.SetBrush(wx.Brush("red", wx.SOLID))
-    #     # set x, y, w, h for rectangle
-    #     self.dc.DrawRectangle(250,250,50, 50)
-    #     self.dc.EndDrawing()
-    #     del self.dc
     def OnPaint(self, event):
         """set up the device context (DC) for painting"""
         dc = wx.PaintDC(self)
@@ -104,8 +58,6 @@ class MyPanel2(wx.Panel):
         dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
         dc.DrawRectangle(10,210,200,200)
 
-
-
 def test_2():
     # app = wx.PySimpleApp()
     app = wx.App(False)
@@ -126,5 +78,4 @@ def test_2():
     app.MainLoop()
 
 if __name__ == "__main__":
-    # test_1()
     test_2()
