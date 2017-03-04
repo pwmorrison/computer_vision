@@ -14,7 +14,7 @@ class MyEvent(wx.PyCommandEvent):
     def GetMyVal(self):
         return self.myVal
 
-class MyPanel2(wx.Panel):
+class MyPanel(wx.Panel):
     """ class MyPanel creates a panel to draw on, inherits wx.Panel """
     def __init__(self, parent, id):
         # create a panel
@@ -58,24 +58,24 @@ class MyPanel2(wx.Panel):
         dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
         dc.DrawRectangle(10,210,200,200)
 
-def test_2():
-    # app = wx.PySimpleApp()
+def test():
     app = wx.App(False)
 
     full_screen = False
 
+    # create a window/frame, no parent, -1 is default ID
     if not full_screen:
-        # create a window/frame, no parent, -1 is default ID
-        frame = wx.Frame(None, -1, "Drawing A Rectangle...", size = (500, 500))#, style=wx.NO_BORDER)
+        frame = wx.Frame(None, -1, "Drawing A Rectangle...", size = (500, 500))
     else:
         frame = wx.Frame(None, -1, "Drawing A Rectangle...", size = (500, 500), style=wx.NO_BORDER)
-        # frame.Maximize(True)
-    # call the derived class, -1 is default ID
-    MyPanel2(frame, -1)
-    # show the frame
+        frame.Maximize(True)
+
+    # Add a panel to the frame, -1 is default ID
+    MyPanel(frame, -1)
+    # Show the frame
     frame.Show(True)
-    # start the event loop
+    # Start the event loop
     app.MainLoop()
 
 if __name__ == "__main__":
-    test_2()
+    test()
