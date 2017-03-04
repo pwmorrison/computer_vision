@@ -1,14 +1,13 @@
 import numpy as np
 from PIL import Image
+import sys
 import cv2
 
-print cv2.__version__
-
-def number_to_gray_code_array(num):
+def number_to_gray_code_array(num, num_bits):
     # The equivalent gray code number.
     gray_num = num ^ (num >> 1)
     # Binary string.
-    binary_str = format(gray_num, '08b')
+    binary_str = format(gray_num, '0%db' % (num_bits))
     # Array of binary ints.
     arr = list(binary_str)
     arr = map(int, arr)
@@ -20,11 +19,19 @@ def generate_gray_code_sequence(upper):
     """
     # The numbers we want to generate gray code sequences for.
     numbers = range(upper)
-    print(numbers)
+    # print(numbers)
+
+    # The number of bits we need to represent all numbers.
+    largest_number = numbers[-1]
+    max_gray = largest_number ^ (largest_number >> 1)
+    binary_str = "{0:b}".format(max_gray)
+    num_bits = len(binary_str)
+    print("%d bits needed to represent maximum number %d" % (num_bits, largest_number))
 
     # Generate gray code sequences.
-    gray_code_arrays = map(number_to_gray_code_array, numbers)
-    print(gray_code_arrays)
+    # gray_code_arrays = map(number_to_gray_code_array, numbers)
+    gray_code_arrays = [number_to_gray_code_array(num, num_bits) for num in numbers]
+    # print(gray_code_arrays)
 
     return gray_code_arrays
 
@@ -33,14 +40,17 @@ def generate_gray_code_bit_planes(gray_code_sequences):
     Generates bit planes that can be projected in sequence, to encode each position as gray code.
     """
     arr = np.asarray(gray_code_sequences)
-    print(arr)
-    print(arr.shape)
+    # print(arr)
+    # print(arr.shape)
     bit_planes = arr.transpose()
-    print(bit_planes)
-    print(bit_planes.shape)
+    # print(bit_planes)
+    # print(bit_planes.shape)
     return bit_planes
 
 def generate_bit_plane_image(bit_plane, is_horizontal, width, height):
+    """
+    Generates bit planes, from MSB to LSB.
+    """
     im_arr = np.zeros((height, width))
 
     print(bit_plane)
@@ -72,6 +82,8 @@ if __name__ == "__main__":
         bit_plane = bit_planes[bit_plane_num, :]
         im = generate_bit_plane_image(bit_plane, True, width, height)
         im.save("horizontal_%d.png" % (bit_plane_num))
+
+    sys.exit(0)
 
     for bit_plane_num in range(bit_planes.shape[0]):
         bit_plane = bit_planes[bit_plane_num, :]
