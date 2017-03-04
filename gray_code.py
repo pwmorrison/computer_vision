@@ -32,10 +32,15 @@ def generate_gray_code_bit_planes(gray_code_sequences):
     Generates bit planes that can be projected in sequence, to encode each position as gray code.
     """
     arr = np.asarray(gray_code_sequences)
-
+    print(arr)
+    print(arr.shape)
+    bit_planes = arr.transpose()
+    print(bit_planes)
+    print(bit_planes.shape)
+    return bit_planes
 
 if __name__ == "__main__":
     print "hello"
     gray_code_arrays = generate_gray_code_sequence()
-
-    generate_gray_code_bit_planes(gray_code_arrays)
+    # Convert the sequence to bit planes.
+    bit_planes = generate_gray_code_bit_planes(gray_code_arrays)
