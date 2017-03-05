@@ -58,18 +58,6 @@ class GrayCodeState():
 
 myEVT_CUSTOM = wx.NewEventType()
 EVT_CUSTOM = wx.PyEventBinder(myEVT_CUSTOM, 1)
-class MyEvent(wx.PyCommandEvent):
-    def __init__(self, evtType, id):
-        wx.PyCommandEvent.__init__(self, evtType, id)
-        myVal = None
-        # print(myV)
-
-    def SetMyVal(self, val):
-        self.myVal = val
-
-    def GetMyVal(self):
-        return self.myVal
-
 class GrayCodeEvent(wx.PyCommandEvent):
     def __init__(self, evtType, id, gray_code_state):
         wx.PyCommandEvent.__init__(self, evtType, id)
@@ -93,6 +81,7 @@ class GrayCodePanel(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
     def OnPaint(self, event):
+        print("OnPaint")
         dc = wx.PaintDC(self)
 
         #blue non-filled rectangle
@@ -111,8 +100,6 @@ class GrayCodePanel(wx.Panel):
             dc.SetBrush(wx.Brush("red"))
             dc.DrawRectangle(220 + i*10,10,200 + i*10,200)
 
-        print("Painting.")
-
         gray_code_state = GrayCodeState()
 
         event = GrayCodeEvent(myEVT_CUSTOM, self.GetId(), gray_code_state)
@@ -123,7 +110,7 @@ class GrayCodePanel(wx.Panel):
 
     def render_another_square(self, event):
         """set up the device context (DC) for painting"""
-        print(event)
+        print("render_another_square")
         dc = wx.PaintDC(self)
         #blue non-filled rectangle
         dc.SetPen(wx.Pen("blue"))
@@ -136,9 +123,8 @@ class GrayCodePanel(wx.Panel):
         TODO: To include camera capture, we'll need to have some kind of switch in this function. If the next event is
         not a render, capture an image, or something.
         """
-        # print(event)
+        print("render_gray_code")
         state = event.gray_code_state
-        print(state)
 
         # Get the current bit plane.
         bit_plane = state.get_current_bit_plane()
