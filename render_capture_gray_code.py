@@ -1,4 +1,5 @@
 import wx
+import time
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
 
 """
@@ -56,20 +57,6 @@ class GrayCodeState():
         # TODO For now, just return the current bit plane number.
         return self.current_bit_plane
 
-myEVT_GRAY_CODE = wx.NewEventType()
-EVT_GRAY_CODE = wx.PyEventBinder(myEVT_GRAY_CODE, 1)
-class GrayCodeEvent(wx.PyCommandEvent):
-    def __init__(self, evtType, id, gray_code_state):
-        wx.PyCommandEvent.__init__(self, evtType, id)
-        myVal = None
-        self.gray_code_state = gray_code_state
-        # print(myV)
-
-    def SetMyVal(self, val):
-        self.myVal = val
-
-    def GetMyVal(self):
-        return self.myVal
 
 class GrayCodePanel(wx.Panel):
     """
@@ -78,13 +65,21 @@ class GrayCodePanel(wx.Panel):
     def __init__(self, parent, id, window_size):
         wx.Panel.__init__(self, parent, id)
         self.SetBackgroundColour("black")
+
+        self.gray_code_state = GrayCodeState()
+
+        # Create a timer that triggers a refresh, to paint a new Gray code bit plane.
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.timer_update, self.timer)
+
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
     def OnPaint(self, event):
         print("OnPaint")
         dc = wx.PaintDC(self)
 
-        if 0:
+        # Render static stuff, that persists between re-paints.
+        if 1:
             #blue non-filled rectangle
             dc.SetPen(wx.Pen("blue"))
             dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
@@ -101,30 +96,23 @@ class GrayCodePanel(wx.Panel):
                 dc.SetBrush(wx.Brush("red"))
                 dc.DrawRectangle(220 + i*10,10,200 + i*10,200)
 
-        gray_code_state = GrayCodeState()
+        # Render dynamic Gray code stuff.
+        if 1:
+            state = self.gray_code_state
+            self.render_gray_code2(state)
+            # Increment the gray code state.
+            state.progress_state()
+            if not state.is_sequence_finished():
+                # Start a new timer, to render the next bit plane.
+                self.timer.Start(2000)
 
-        event = GrayCodeEvent(myEVT_GRAY_CODE, self.GetId(), gray_code_state)
-        event.SetMyVal('here is some custom data')
-        self.Bind(EVT_GRAY_CODE, self.render_gray_code)
-        self.GetEventHandler().ProcessEvent(event)
+        return
 
-    def render_gray_code(self, event):
-        """
-        event -- The event that triggered this rendering. Contains the state of the Gray code sequence.
-        TODO: To include camera capture, we'll need to have some kind of switch in this function. If the next event is
-        not a render, capture an image, or something.
-        """
-        print("render_gray_code")
-        state = event.gray_code_state
+        # event = GrayCodeEvent(myEVT_GRAY_CODE, self.GetId(), gray_code_state)
 
-        # Get the current bit plane.
-        bit_plane = state.get_current_bit_plane()
+        state = self.gray_code_state
 
-        # Render the current bit plane.
-        dc = wx.PaintDC(self)
-        dc.SetPen(wx.Pen("blue"))
-        dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
-        dc.DrawRectangle(10 + bit_plane * 20, 210, 200, 200)
+        self.render_gray_code2(state)
 
         # Increment the gray code state.
         state.progress_state()
@@ -132,7 +120,36 @@ class GrayCodePanel(wx.Panel):
         if not state.is_sequence_finished():
             # Trigger the event again, so that we move onto the next state.
             event = GrayCodeEvent(myEVT_GRAY_CODE, self.GetId(), state)
-            self.GetEventHandler().ProcessEvent(event)
+            self.GetEventHandler().ProcessEvent(event)    # self.Bind(EVT_GRAY_CODE, self.render_gray_code)
+
+    def timer_update(self, event):
+        """
+        Timer event handler.
+        Basically just triggers a re-paint when the timer is triggered.
+        """
+        self.timer.Stop()
+        self.Refresh()
+
+    def render_gray_code2(self, state):
+        """
+        event -- The event that triggered this rendering. Contains the state of the Gray code sequence.
+        TODO: To include camera capture, we'll need to have some kind of switch in this function. If the next event is
+        not a render, capture an image, or something.
+        """
+        print("render_gray_code")
+        # state = event.gray_code_state
+
+        # Get the current bit plane.
+        bit_plane = state.get_current_bit_plane()
+        print(bit_plane)
+
+        # Render the current bit plane.
+        dc = wx.PaintDC(self)
+        # dc = self.dc
+        dc.SetPen(wx.Pen("blue"))
+        dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
+        dc.DrawRectangle(10 + bit_plane * 20, 310, 200, 200)
+
 
 def main(full_screen):
     app = wx.App(False)
