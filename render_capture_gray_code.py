@@ -22,9 +22,8 @@ The Panel onpaint method should paint according to the current state. It should 
 class GrayCodeState():
     """
     Class representing the sequence of gray code projections.
-    todo Externally, this class should only supply bit planes.
+    This class supplies the bit planes that are rendered, and keeps track of the sequence of rendered bit planes.
     """
-
     def __init__(self):
         width = 12
         height = 8
@@ -88,7 +87,7 @@ class GrayCodePanel(wx.Panel):
     """
     Panel to render Gray code patterns.
     """
-    def __init__(self, parent, id):
+    def __init__(self, parent, id, window_size):
         wx.Panel.__init__(self, parent, id)
         self.SetBackgroundColour("black")
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -162,12 +161,14 @@ def main(full_screen):
     app = wx.App(False)
     # Create frame, no parent, -1 is default ID.
     if not full_screen:
-        frame = wx.Frame(None, -1, "Gray code capture", size = (500, 500))
+        window_size = (500, 500)
+        frame = wx.Frame(None, -1, "Gray code capture", size=window_size)
     else:
-        frame = wx.Frame(None, -1, "Gray code capture", size = (500, 500), style=wx.NO_BORDER)
+        window_size = wx.GetDisplaySize()
+        frame = wx.Frame(None, -1, "Gray code capture", size=window_size, style=wx.NO_BORDER)
         frame.Maximize(True)
     # Add a panel to the frame, -1 is default ID
-    GrayCodePanel(frame, -1)
+    GrayCodePanel(frame, -1, window_size)
     # Show the frame
     frame.Show(True)
     # Start the event loop
@@ -175,5 +176,4 @@ def main(full_screen):
 
 if __name__ == '__main__':
     full_screen = False
-
     main(full_screen)
