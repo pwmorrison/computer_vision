@@ -26,9 +26,9 @@ class GrayCodeState():
     Class representing the sequence of gray code projections.
     This class supplies the bit planes that are rendered, and keeps track of the sequence of rendered bit planes.
     """
-    def __init__(self):
-        width = 12
-        height = 8
+    def __init__(self, window_size):
+        width = window_size[0]
+        height = window_size[1]
         # Generate the gray code sequences to cover the largest possible coordinate.
         gray_code_arrays = generate_gray_code_sequence(max(width, height))
 
@@ -72,7 +72,7 @@ class GrayCodePanel(wx.Panel):
 
         self.window_size = window_size
 
-        self.gray_code_state = GrayCodeState()
+        self.gray_code_state = GrayCodeState(window_size)
 
         # Create a timer that triggers a refresh, to paint a new Gray code bit plane.
         self.timer = wx.Timer(self)
