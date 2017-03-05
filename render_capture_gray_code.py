@@ -1,5 +1,6 @@
 import wx
 import time
+import numpy as np
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
 
 """
@@ -35,7 +36,7 @@ class GrayCodeState():
         self.bit_planes = generate_gray_code_bit_planes(gray_code_arrays)
 
         self.current_bit_plane = 0
-        self.final_bit_plane = self.bit_planes.shape[0]
+        self.final_bit_plane = self.bit_planes.shape[0] - 1
         self.sequence_finished = False
 
     def progress_state(self):
@@ -55,7 +56,10 @@ class GrayCodeState():
         Gets the bit plane for the current state.
         """
         # TODO For now, just return the current bit plane number.
-        return self.current_bit_plane
+        bit_plane_index = len(self.bit_planes) - self.current_bit_plane - 1
+        print("Getting bit plane for index:", bit_plane_index)
+        return self.bit_planes[bit_plane_index]
+        # return self.bit_planes[self.current_bit_plane]
 
 
 class GrayCodePanel(wx.Panel):
@@ -65,6 +69,8 @@ class GrayCodePanel(wx.Panel):
     def __init__(self, parent, id, window_size):
         wx.Panel.__init__(self, parent, id)
         self.SetBackgroundColour("black")
+
+        self.window_size = window_size
 
         self.gray_code_state = GrayCodeState()
 
@@ -145,10 +151,18 @@ class GrayCodePanel(wx.Panel):
 
         # Render the current bit plane.
         dc = wx.PaintDC(self)
-        # dc = self.dc
-        dc.SetPen(wx.Pen("blue"))
-        dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
-        dc.DrawRectangle(10 + bit_plane * 20, 310, 200, 200)
+
+        if 0:
+            dc.SetPen(wx.Pen("blue"))
+            dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
+            dc.DrawRectangle(10 + bit_plane * 20, 310, 200, 200)
+
+        dc.SetPen(wx.Pen("white"))
+        dc.SetBrush(wx.Brush("white"))
+        # dc.DrawRectangle(10 + bit_plane * 20, 310, 200, 200)
+        for x, bit_val in enumerate(bit_plane):
+            if bit_val == 1:
+                dc.DrawRectangle(x, 0, 1, self.window_size[1])
 
 
 def main(full_screen):
