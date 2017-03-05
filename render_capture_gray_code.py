@@ -84,21 +84,22 @@ class GrayCodePanel(wx.Panel):
         print("OnPaint")
         dc = wx.PaintDC(self)
 
-        #blue non-filled rectangle
-        dc.SetPen(wx.Pen("blue"))
-        dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
-        dc.DrawRectangle(10,10,200,200)
+        if 0:
+            #blue non-filled rectangle
+            dc.SetPen(wx.Pen("blue"))
+            dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
+            dc.DrawRectangle(10,10,200,200)
 
-        #red filled rectangle
-        dc.SetPen(wx.Pen("red"))
-        dc.SetBrush(wx.Brush("red"))
-        dc.DrawRectangle(220,10,200,200)
-
-        for i in range(10):
             #red filled rectangle
             dc.SetPen(wx.Pen("red"))
             dc.SetBrush(wx.Brush("red"))
-            dc.DrawRectangle(220 + i*10,10,200 + i*10,200)
+            dc.DrawRectangle(220,10,200,200)
+
+            for i in range(10):
+                #red filled rectangle
+                dc.SetPen(wx.Pen("red"))
+                dc.SetBrush(wx.Brush("red"))
+                dc.DrawRectangle(220 + i*10,10,200 + i*10,200)
 
         gray_code_state = GrayCodeState()
 
