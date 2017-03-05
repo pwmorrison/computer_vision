@@ -35,18 +35,27 @@ class GrayCodeState():
         self.bit_planes = generate_gray_code_bit_planes(gray_code_arrays)
 
         self.current_bit_plane = 0
+        self.final_bit_plane = self.bit_planes.shape[0]
+        self.sequence_finished = False
 
     def progress_state(self):
         """
         Progress the current state to the next state.
         """
         self.current_bit_plane += 1
+        if self.current_bit_plane > self.final_bit_plane:
+            self.current_bit_plane = self.final_bit_plane
+            self.sequence_finished = True
+
+    def is_sequence_finished(self):
+        return self.sequence_finished
 
     def get_current_bit_plane(self):
         """
         Gets the bit plane for the current state.
         """
-        pass
+        # TODO For now, just return the current bit plane number.
+        return self.current_bit_plane
 
 myEVT_CUSTOM = wx.NewEventType()
 EVT_CUSTOM = wx.PyEventBinder(myEVT_CUSTOM, 1)
@@ -128,18 +137,26 @@ class GrayCodePanel(wx.Panel):
         TODO: To include camera capture, we'll need to have some kind of switch in this function. If the next event is
         not a render, capture an image, or something.
         """
-        print(event)
+        # print(event)
         state = event.gray_code_state
         print(state)
-        # Get the current bit plane.
 
+        # Get the current bit plane.
+        bit_plane = state.get_current_bit_plane()
 
         # Render the current bit plane.
+        dc = wx.PaintDC(self)
+        dc.SetPen(wx.Pen("blue"))
+        dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
+        dc.DrawRectangle(10 + bit_plane * 20, 210, 200, 200)
 
         # Increment the gray code state.
+        state.progress_state()
 
-        # Trigger the event again, so that we move onto the next state.
-
+        if not state.is_sequence_finished():
+            # Trigger the event again, so that we move onto the next state.
+            event = GrayCodeEvent(myEVT_CUSTOM, self.GetId(), state)
+            self.GetEventHandler().ProcessEvent(event)
 
 def main(full_screen):
     app = wx.App(False)
