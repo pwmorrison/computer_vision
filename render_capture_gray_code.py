@@ -56,8 +56,8 @@ class GrayCodeState():
         # TODO For now, just return the current bit plane number.
         return self.current_bit_plane
 
-myEVT_CUSTOM = wx.NewEventType()
-EVT_CUSTOM = wx.PyEventBinder(myEVT_CUSTOM, 1)
+myEVT_GRAY_CODE = wx.NewEventType()
+EVT_GRAY_CODE = wx.PyEventBinder(myEVT_GRAY_CODE, 1)
 class GrayCodeEvent(wx.PyCommandEvent):
     def __init__(self, evtType, id, gray_code_state):
         wx.PyCommandEvent.__init__(self, evtType, id)
@@ -102,20 +102,10 @@ class GrayCodePanel(wx.Panel):
 
         gray_code_state = GrayCodeState()
 
-        event = GrayCodeEvent(myEVT_CUSTOM, self.GetId(), gray_code_state)
+        event = GrayCodeEvent(myEVT_GRAY_CODE, self.GetId(), gray_code_state)
         event.SetMyVal('here is some custom data')
-        # self.Bind(EVT_CUSTOM, self.render_another_square)
-        self.Bind(EVT_CUSTOM, self.render_gray_code)
+        self.Bind(EVT_GRAY_CODE, self.render_gray_code)
         self.GetEventHandler().ProcessEvent(event)
-
-    def render_another_square(self, event):
-        """set up the device context (DC) for painting"""
-        print("render_another_square")
-        dc = wx.PaintDC(self)
-        #blue non-filled rectangle
-        dc.SetPen(wx.Pen("blue"))
-        dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
-        dc.DrawRectangle(10,210,200,200)
 
     def render_gray_code(self, event):
         """
@@ -140,7 +130,7 @@ class GrayCodePanel(wx.Panel):
 
         if not state.is_sequence_finished():
             # Trigger the event again, so that we move onto the next state.
-            event = GrayCodeEvent(myEVT_CUSTOM, self.GetId(), state)
+            event = GrayCodeEvent(myEVT_GRAY_CODE, self.GetId(), state)
             self.GetEventHandler().ProcessEvent(event)
 
 def main(full_screen):
