@@ -3,7 +3,8 @@ import cv2
 
 """
 Code taken from here: http://stackoverflow.com/questions/14804741/opencv-integration-with-wxpython
-Good tutorial: http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_gui/py_video_display/py_video_display.html
+Good tutorial: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_gui/py_video_display/py_video_display.html#display-video
+Property IDs: http://docs.opencv.org/2.4/modules/highgui/doc/reading_and_writing_images_and_video.html#videocapture-get
 """
 
 class ShowCapture(wx.Panel):
