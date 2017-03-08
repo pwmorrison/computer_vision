@@ -38,14 +38,14 @@ class ShowCapture(wx.Panel):
             self.bmp.CopyFromBuffer(frame)
             self.Refresh()
 
+if __name__ == '__main__':
+    capture = cv2.VideoCapture(0)
+    print(capture)
+    # capture.set(cv2.CV_CAP_PROP_FRAME_WIDTH, 320)
+    # capture.set(cv2.CV_CAP_PROP_FRAME_HEIGHT, 240)
 
-capture = cv2.VideoCapture(0)
-print(capture)
-# capture.set(cv2.CV_CAP_PROP_FRAME_WIDTH, 320)
-# capture.set(cv2.CV_CAP_PROP_FRAME_HEIGHT, 240)
-
-app = wx.App()
-frame = wx.Frame(None)
-cap = ShowCapture(frame, capture)
-frame.Show()
-app.MainLoop()
+    app = wx.App()
+    frame = wx.Frame(None)
+    cap = ShowCapture(frame, capture)
+    frame.Show()
+    app.MainLoop()

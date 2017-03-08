@@ -3,6 +3,7 @@ import time
 import numpy as np
 import cv2
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
+from camera_test import ShowCapture
 
 """
 Main file for rendering gray code patterns, and capturing images of the patterns.
@@ -67,16 +68,13 @@ class GrayCodePanel(wx.Panel):
     """
     Panel to render Gray code patterns.
     """
-    def __init__(self, parent, id, window_size, camera):
+    def __init__(self, parent, id, window_size):
         wx.Panel.__init__(self, parent, id)
         self.SetBackgroundColour("black")
 
         self.window_size = window_size
 
         self.gray_code_state = GrayCodeState(window_size)
-
-        # This can be None, in which case images aren't captured.
-        self.camera = camera
 
         # Create a timer that triggers a refresh, to paint a new Gray code bit plane.
         self.timer = wx.Timer(self)
@@ -179,23 +177,30 @@ class GrayCodePanel(wx.Panel):
             self.Refresh()
 
 def main(full_screen, capture_images):
-    if capture_images:
-        # Set up the camera.
-        camera_number = 1
-        capture = cv2.VideoCapture(camera_number)
+
     app = wx.App(False)
     # Create frame, no parent, -1 is default ID.
     if not full_screen:
         window_size = (500, 500)
-        frame = wx.Frame(None, -1, "Gray code capture", size=window_size)
+        frame = wx.Frame(None, -1, "Gray code projection", size=window_size)
     else:
         window_size = wx.GetDisplaySize()
-        frame = wx.Frame(None, -1, "Gray code capture", size=window_size, style=wx.NO_BORDER)
+        frame = wx.Frame(None, -1, "Gray code projection", size=window_size, style=wx.NO_BORDER)
         frame.Maximize(True)
     # Add a panel to the frame, -1 is default ID
-    GrayCodePanel(frame, -1, window_size, capture_images)
+    GrayCodePanel(frame, -1, window_size)
     # Show the frame
     frame.Show(True)
+
+    if capture_images:
+        # Set up the camera.
+        camera_number = 0
+        capture = cv2.VideoCapture(camera_number)
+        camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
+        cap = ShowCapture(camera_frame, capture)
+        camera_frame.Show(True)
+
+
     # Start the event loop
     app.MainLoop()
 
