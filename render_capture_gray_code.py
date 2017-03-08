@@ -1,6 +1,7 @@
 import wx
 import time
 import numpy as np
+import cv2
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
 
 """
@@ -66,13 +67,16 @@ class GrayCodePanel(wx.Panel):
     """
     Panel to render Gray code patterns.
     """
-    def __init__(self, parent, id, window_size):
+    def __init__(self, parent, id, window_size, camera):
         wx.Panel.__init__(self, parent, id)
         self.SetBackgroundColour("black")
 
         self.window_size = window_size
 
         self.gray_code_state = GrayCodeState(window_size)
+
+        # This can be None, in which case images aren't captured.
+        self.camera = camera
 
         # Create a timer that triggers a refresh, to paint a new Gray code bit plane.
         self.timer = wx.Timer(self)
@@ -164,8 +168,21 @@ class GrayCodePanel(wx.Panel):
             if bit_val == 1:
                 dc.DrawRectangle(x, 0, 1, self.window_size[1])
 
+    def CaptureImage(self, event):
+        """
+        Captures an image from the camera, of a displayed gray code image.
+        """
+        ret, frame = self.capture.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.bmp.CopyFromBuffer(frame)
+            self.Refresh()
 
-def main(full_screen):
+def main(full_screen, capture_images):
+    if capture_images:
+        # Set up the camera.
+        camera_number = 1
+        capture = cv2.VideoCapture(camera_number)
     app = wx.App(False)
     # Create frame, no parent, -1 is default ID.
     if not full_screen:
@@ -176,7 +193,7 @@ def main(full_screen):
         frame = wx.Frame(None, -1, "Gray code capture", size=window_size, style=wx.NO_BORDER)
         frame.Maximize(True)
     # Add a panel to the frame, -1 is default ID
-    GrayCodePanel(frame, -1, window_size)
+    GrayCodePanel(frame, -1, window_size, capture_images)
     # Show the frame
     frame.Show(True)
     # Start the event loop
@@ -184,4 +201,5 @@ def main(full_screen):
 
 if __name__ == '__main__':
     full_screen = False
-    main(full_screen)
+    capture_images = True
+    main(full_screen, capture_images)
