@@ -114,22 +114,6 @@ class GrayCodePanel(wx.Panel):
                 # Start a new timer, to render the next bit plane.
                 self.timer.Start(2000)
 
-        return
-
-        # event = GrayCodeEvent(myEVT_GRAY_CODE, self.GetId(), gray_code_state)
-
-        state = self.gray_code_state
-
-        self.render_gray_code2(state)
-
-        # Increment the gray code state.
-        state.progress_state()
-
-        if not state.is_sequence_finished():
-            # Trigger the event again, so that we move onto the next state.
-            event = GrayCodeEvent(myEVT_GRAY_CODE, self.GetId(), state)
-            self.GetEventHandler().ProcessEvent(event)    # self.Bind(EVT_GRAY_CODE, self.render_gray_code)
-
     def timer_update(self, event):
         """
         Timer event handler.
