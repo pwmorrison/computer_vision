@@ -76,7 +76,7 @@ class GrayCodePanel(wx.Panel):
         dc = wx.PaintDC(self)
 
         # Render static stuff, that persists between re-paints.
-        if 1:
+        if 0:
             #blue non-filled rectangle
             dc.SetPen(wx.Pen("blue"))
             dc.SetBrush(wx.Brush("blue", wx.TRANSPARENT)) #set brush transparent for non-filled rectangle
@@ -96,7 +96,7 @@ class GrayCodePanel(wx.Panel):
         # Render dynamic Gray code stuff.
         if 1:
             state = self.gray_code_state
-            self.render_gray_code2(state)
+            self.render_gray_code(state)
             if 0:
                 # Increment the gray code state.
                 state.progress_state()
@@ -124,11 +124,9 @@ class GrayCodePanel(wx.Panel):
             print("Starting timer.")
             self.timer.Start(2000)
 
-    def render_gray_code2(self, state):
+    def render_gray_code(self, state):
         """
-        event -- The event that triggered this rendering. Contains the state of the Gray code sequence.
-        TODO: To include camera capture, we'll need to have some kind of switch in this function. If the next event is
-        not a render, capture an image, or something.
+        Renders the current Gray code sequence in the given state.
         """
         print("render_gray_code")
         # state = event.gray_code_state
