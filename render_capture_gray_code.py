@@ -3,7 +3,7 @@ import time
 import numpy as np
 import cv2
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
-from camera_test import ShowCapture
+from gray_code_camera_panel import GrayCodeCameraPanel
 
 """
 Main file for rendering gray code patterns, and capturing images of the patterns.
@@ -197,7 +197,7 @@ def main(full_screen, capture_images):
         camera_number = 0
         capture = cv2.VideoCapture(camera_number)
         camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
-        cap = ShowCapture(camera_frame, capture)
+        cap = GrayCodeCameraPanel(camera_frame, capture)
         camera_frame.Show(True)
 
 
