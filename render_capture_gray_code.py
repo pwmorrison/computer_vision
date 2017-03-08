@@ -7,20 +7,6 @@ from gray_code_camera_panel import GrayCodeCameraPanel
 
 """
 Main file for rendering gray code patterns, and capturing images of the patterns.
-
-How this should work:
-
-1. It should all be within a wxPython app, since that needs its own event loop.
-This will also allow us to capture key presses, for controlling the projection, etc.
-
-2. We need to implement a state machine, for alternating between projection, capture, etc. We can probably do this by
-having a custom Event class, that stores the current state, and the state progression sequence. The Panel should
-invoke all the rendering calls, with assistance from the gray code class for getting the bit sequences.
-
-The Panel onpaint method should paint according to the current state. It should also be the only function
-
-
-
 """
 
 class GrayCodeState():
@@ -82,6 +68,9 @@ class GrayCodePanel(wx.Panel):
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
+        # Start the timer, to trigger the first state change at some future time.
+        self.start_timer()
+
     def OnPaint(self, event):
         print("OnPaint")
         dc = wx.PaintDC(self)
@@ -108,19 +97,32 @@ class GrayCodePanel(wx.Panel):
         if 1:
             state = self.gray_code_state
             self.render_gray_code2(state)
-            # Increment the gray code state.
-            state.progress_state()
-            if not state.is_sequence_finished():
-                # Start a new timer, to render the next bit plane.
-                self.timer.Start(2000)
+            if 0:
+                # Increment the gray code state.
+                state.progress_state()
+                if not state.is_sequence_finished():
+                    # Start a new timer, to render the next bit plane.
+                    self.timer.Start(2000)
 
     def timer_update(self, event):
         """
         Timer event handler.
         Basically just triggers a re-paint when the timer is triggered.
+        Also sets the next timer event, if the pattern isn't finished.
         """
         self.timer.Stop()
         self.Refresh()
+
+        state = self.gray_code_state
+        state.progress_state()
+        self.start_timer()
+
+    def start_timer(self):
+        state = self.gray_code_state
+        if not state.is_sequence_finished():
+            # Start a new timer, to render the next bit plane.
+            print("Starting timer.")
+            self.timer.Start(2000)
 
     def render_gray_code2(self, state):
         """
@@ -149,16 +151,6 @@ class GrayCodePanel(wx.Panel):
         for x, bit_val in enumerate(bit_plane):
             if bit_val == 1:
                 dc.DrawRectangle(x, 0, 1, self.window_size[1])
-
-    def CaptureImage(self, event):
-        """
-        Captures an image from the camera, of a displayed gray code image.
-        """
-        ret, frame = self.capture.read()
-        if ret:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            self.bmp.CopyFromBuffer(frame)
-            self.Refresh()
 
 def main(full_screen, capture_images):
 
