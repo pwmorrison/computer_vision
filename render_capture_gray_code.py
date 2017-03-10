@@ -33,14 +33,19 @@ class GrayCodeController():
             cap = GrayCodeCameraPanel(camera_frame, capture)
             camera_frame.Show(True)
 
+        # Timer to kick off processing, after the go into the event loop.
+        self.timer = wx.Timer()
+        app.Bind(wx.EVT_TIMER, self.processing_loop, self.timer)
+        self.timer.Start(2000)
+
         # Start the event loop
         app.MainLoop()
 
-    def process_timer_event(self, event):
+    def processing_loop(self, event):
         """
         Processes a timer event, to cause Gray code rendering and capture.
         """
-        print(event)
+        print("Hello", event)
         # Get the next state.
 
         # Trigger a render, then capture an image.
