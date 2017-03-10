@@ -9,6 +9,50 @@ from gray_code_camera_panel import GrayCodeCameraPanel
 Main file for rendering gray code patterns, and capturing images of the patterns.
 """
 
+class GrayCodeController():
+    def __init__(self, full_screen, capture_images):
+        app = wx.App(False)
+        # Create frame, no parent, -1 is default ID.
+        if not full_screen:
+            window_size = (500, 500)
+            frame = wx.Frame(None, -1, "Gray code projection", size=window_size)
+        else:
+            window_size = wx.GetDisplaySize()
+            frame = wx.Frame(None, -1, "Gray code projection", size=window_size, style=wx.NO_BORDER)
+            frame.Maximize(True)
+        # Add a panel to the frame, -1 is default ID
+        GrayCodePanel(frame, -1, window_size)
+        # Show the frame
+        frame.Show(True)
+
+        if capture_images:
+            # Set up the camera.
+            camera_number = 0
+            capture = cv2.VideoCapture(camera_number)
+            camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
+            cap = GrayCodeCameraPanel(camera_frame, capture)
+            camera_frame.Show(True)
+
+        # Start the event loop
+        app.MainLoop()
+
+    def process_timer_event(self, event):
+        """
+        Processes a timer event, to cause Gray code rendering and capture.
+        """
+        print(event)
+        # Get the next state.
+
+        # Trigger a render, then capture an image.
+        # We might need to pause for a second or so.
+
+        # Display the image in the camera panel.
+        # Set the image, then trigger a redraw on the camera panel.
+
+
+
+
+
 class GrayCodeState():
     """
     Class representing the sequence of gray code projections.
@@ -150,35 +194,7 @@ class GrayCodePanel(wx.Panel):
             if bit_val == 1:
                 dc.DrawRectangle(x, 0, 1, self.window_size[1])
 
-def main(full_screen, capture_images):
-
-    app = wx.App(False)
-    # Create frame, no parent, -1 is default ID.
-    if not full_screen:
-        window_size = (500, 500)
-        frame = wx.Frame(None, -1, "Gray code projection", size=window_size)
-    else:
-        window_size = wx.GetDisplaySize()
-        frame = wx.Frame(None, -1, "Gray code projection", size=window_size, style=wx.NO_BORDER)
-        frame.Maximize(True)
-    # Add a panel to the frame, -1 is default ID
-    GrayCodePanel(frame, -1, window_size)
-    # Show the frame
-    frame.Show(True)
-
-    if capture_images:
-        # Set up the camera.
-        camera_number = 0
-        capture = cv2.VideoCapture(camera_number)
-        camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
-        cap = GrayCodeCameraPanel(camera_frame, capture)
-        camera_frame.Show(True)
-
-
-    # Start the event loop
-    app.MainLoop()
-
 if __name__ == '__main__':
     full_screen = False
     capture_images = True
-    main(full_screen, capture_images)
+    controller = GrayCodeController(full_screen, capture_images)
