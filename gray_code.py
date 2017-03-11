@@ -26,7 +26,7 @@ def generate_gray_code_sequence(upper):
     max_gray = largest_number ^ (largest_number >> 1)
     binary_str = "{0:b}".format(max_gray)
     num_bits = len(binary_str)
-    print("%d bits needed to represent maximum number %d" % (num_bits, largest_number))
+    # print("%d bits needed to represent maximum number %d" % (num_bits, largest_number))
 
     # Generate gray code sequences.
     # gray_code_arrays = map(number_to_gray_code_array, numbers)
@@ -53,7 +53,7 @@ def generate_bit_plane_image(bit_plane, is_horizontal, width, height):
     """
     im_arr = np.zeros((height, width))
 
-    print(bit_plane)
+    # print(bit_plane)
 
     if is_horizontal:
         for x in range(width):

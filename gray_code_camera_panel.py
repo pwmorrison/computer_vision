@@ -14,22 +14,40 @@ class GrayCodeCameraPanel(wx.Panel):
         self.capture = capture
         ret, frame = self.capture.read()
 
+        # buffer_size = self.capture.get(cv2.CAP_PROP_BUFFERSIZE)
+        # print("OpenCV buffer size: %d" % (buffer_size))
+
         height, width = frame.shape[:2]
         parent.SetSize((width, height))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         self.bmp = wx.BitmapFromBuffer(width, height, frame)
 
-        self.timer = wx.Timer(self)
-        self.timer.Start(1000./fps)
+        if 0:
+            self.timer = wx.Timer(self)
+            self.timer.Start(1000./fps)
+            self.Bind(wx.EVT_TIMER, self.NextFrame)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_TIMER, self.NextFrame)
 
+        self.image_number = 0
 
     def OnPaint(self, evt):
-        dc = wx.BufferedPaintDC(self)
+        dc = wx.PaintDC(self)
+        # dc = wx.BufferedPaintDC(self)
         dc.DrawBitmap(self.bmp, 0, 0)
+        print("Painting image %d" % self.image_number)
+
+    def capture_image(self):
+        # Read a coupld of frames to get through the buffer to the current image.
+        ret, frame = self.capture.read()
+        ret, frame = self.capture.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.bmp.CopyFromBuffer(frame)
+            self.image_number += 1
+            print("Capturing image %d" % self.image_number)
+            self.Refresh()
 
     def NextFrame(self, event):
         ret, frame = self.capture.read()
