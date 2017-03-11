@@ -29,16 +29,16 @@ class GrayCodeController():
 
         if capture_images:
             # Set up the camera.
-            camera_number = 0
+            camera_number = 1
             capture = cv2.VideoCapture(camera_number)
             camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
             self.camera_panel = GrayCodeCameraPanel(camera_frame, capture)
-            camera_frame.Show(True)
+            camera_frame.Show(False)
 
         # Timer to kick off processing, after the go into the event loop.
         self.timer = wx.Timer()
         app.Bind(wx.EVT_TIMER, self.processing_loop, self.timer)
-        self.timer.Start(5000)
+        self.timer.Start(1000)
 
         self.gray_code_state = GrayCodeState(window_size)
 
@@ -70,23 +70,19 @@ class GrayCodeController():
             self.is_render = False
         else:
             print("Capturing")
-            # Capturing an Gray code pattern.
-            image = self.camera_panel.capture_image()
-            self.camera_panel.Refresh()
+            if self.iteration < self.gray_code_state.get_num_bit_planes():
+                # Capturing an Gray code pattern.
+                image = self.camera_panel.capture_image()
+                gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                self.camera_panel.Refresh()
 
-            image = Image.fromarray(image)
-            print("Captured image:", image)
-            image.save("image.png")
+                image = Image.fromarray(gray_image)
+                print("Captured image:", image)
+                # image = image.convert('gray')
+                image.save("graycode_%0d.png" % (self.iteration))
 
             self.is_render = True
             self.iteration += 1
-
-
-        # Display the image in the camera panel.
-        # Set the image, then trigger a redraw on the camera panel.
-
-
-
 
 class GrayCodeState():
     """
@@ -128,6 +124,8 @@ class GrayCodeState():
         return self.bit_planes[bit_plane_index]
         # return self.bit_planes[self.current_bit_plane]
 
+    def get_num_bit_planes(self):
+        return len(self.bit_planes)
 
 class GrayCodePanel(wx.Panel):
     """
@@ -236,6 +234,6 @@ class GrayCodePanel(wx.Panel):
                 dc.DrawRectangle(x, 0, 1, self.window_size[1])
 
 if __name__ == '__main__':
-    full_screen = False
+    full_screen = True
     capture_images = True
     controller = GrayCodeController(full_screen, capture_images)
