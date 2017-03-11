@@ -48,6 +48,7 @@ class GrayCodeCameraPanel(wx.Panel):
             self.image_number += 1
             print("Capturing image %d" % self.image_number)
             self.Refresh()
+        return frame
 
     def NextFrame(self, event):
         ret, frame = self.capture.read()

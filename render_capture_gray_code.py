@@ -2,8 +2,10 @@ import wx
 import time
 import numpy as np
 import cv2
+from PIL import Image
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
 from gray_code_camera_panel import GrayCodeCameraPanel
+from image_render_panel import ImageRenderPanel
 
 """
 Main file for rendering gray code patterns, and capturing images of the patterns.
@@ -69,8 +71,12 @@ class GrayCodeController():
         else:
             print("Capturing")
             # Capturing an Gray code pattern.
-            self.camera_panel.capture_image()
+            image = self.camera_panel.capture_image()
             self.camera_panel.Refresh()
+
+            image = Image.fromarray(image)
+            print("Captured image:", image)
+            image.save("image.png")
 
             self.is_render = True
             self.iteration += 1

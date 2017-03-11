@@ -7,9 +7,7 @@ Panel for rendering an image.
 class ImageRenderPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-
         self.image = None
-
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
     def OnPaint(self, evt):
