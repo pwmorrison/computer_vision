@@ -113,16 +113,15 @@ def decode_bit_plane_images(bit_plane_images, threshold):
         im_data[im_data > threshold] = 1
 
         bit_planes.append(im_data)
-
         # print(image, im_data)
 
-
     all_data = np.asarray(bit_planes)
-    print("all_data(depth, width, height):", all_data.shape)
-    print("all_data:", all_data)
+    # print("all_data(depth, width, height):", all_data.shape)
+    # print("all_data:", all_data)
 
     depth, height, width = all_data.shape
     print(depth, width, height)
+    print('')
     for y in range(height):
         for x in range(width):
             # Decode this position.
@@ -136,12 +135,12 @@ def decode_bit_plane_images(bit_plane_images, threshold):
             gray_code_num = int(''.join(bits), 2)
             binary_num = gray_code_to_binary(gray_code_num)
             print("(x:%d, y:%d): bits: %s, gray code num: %d, binary num: %d" % (x, y, bits, gray_code_num, binary_num))
-
+        print('')
         # return
 
 if __name__ == "__main__":
-    width = 4
-    height = 1
+    width = 12
+    height = 3
 
     # Generate the gray code sequences to cover the largest possible coordinate.
     gray_code_arrays = generate_gray_code_sequence(max(width, height))
