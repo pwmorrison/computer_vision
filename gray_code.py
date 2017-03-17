@@ -14,13 +14,13 @@ def number_to_gray_code_array(num, num_bits):
     return arr
 
 def gray_code_to_binary(num):
-    print("Initial num", num)
+    # print("Initial num", num)
     mask = num >> 1
-    print("Initial mask", mask)
+    # print("Initial mask", mask)
     while mask != 0:
         num = num ^ mask
         mask = mask >> 1
-        print(num, mask)
+        # print(num, mask)
     return num
 # unsigned int grayToBinary(unsigned int num)
 # {
@@ -104,27 +104,21 @@ def decode_bit_plane_images(bit_plane_images, threshold):
     for image in bit_plane_images:
         im = Image.open(image)
         w, h = im.size
-        # print(im)
         im_data = list(im.getdata())
-        # print(im_data)
-        # print(len(im_data))
         im_data = np.asarray(im_data)
         im_data = im_data.reshape((w, h))
-        # print(im_data.shape)
 
         # Threshold the data.
         im_data[im_data <= threshold] = 0
         im_data[im_data > threshold] = 1
 
-        # print(im_data)
         bit_planes.append(im_data)
 
-        print(image, im_data)
-
+        # print(image, im_data)
 
     all_data = np.asarray(bit_planes)
-    print("all_data(depth, width, height):", all_data.shape)
-    print("all_data:", all_data)
+    # print("all_data(depth, width, height):", all_data.shape)
+    # print("all_data:", all_data)
 
     depth, width, height = all_data.shape
     print(depth, width, height)
@@ -137,7 +131,7 @@ def decode_bit_plane_images(bit_plane_images, threshold):
                 bits.append(str(bit))
             # We appended to the list in order of increasing bit planes, so we need to reverse it.
             bits = list(reversed(bits))
-            print("Bits at position %d: %s" % (x, tuple(bits)))
+            # print("Bits at position %d: %s" % (x, tuple(bits)))
             gray_code_num = int(''.join(bits), 2)
             binary_num = gray_code_to_binary(gray_code_num)
             print("(x:%d, y:%d): bits: %s, gray code num: %d, binary num: %d" % (x, y, bits, gray_code_num, binary_num))
