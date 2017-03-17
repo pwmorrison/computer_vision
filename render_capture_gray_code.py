@@ -29,11 +29,11 @@ class GrayCodeController():
 
         if capture_images:
             # Set up the camera.
-            camera_number = 1
+            camera_number = 0
             capture = cv2.VideoCapture(camera_number)
             camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
             self.camera_panel = GrayCodeCameraPanel(camera_frame, capture)
-            camera_frame.Show(False)
+            camera_frame.Show(True)
 
         # Timer to kick off processing, after the go into the event loop.
         self.timer = wx.Timer()
@@ -43,6 +43,11 @@ class GrayCodeController():
         self.gray_code_state = GrayCodeState(window_size)
 
         self.iteration = 0
+        self.black_iteration = 0
+        self.white_iteration = 1
+        self.first_gray_code_iteration = 2
+        self.last_gray_code_iteration = self.first_gray_code_iteration + self.gray_code_state.get_num_bit_planes()
+
         self.is_render = True
 
         # Start the event loop
@@ -52,26 +57,15 @@ class GrayCodeController():
         """
         Processes a timer event, to cause Gray code rendering and capture.
         """
-        if self.is_render:
-            print("Rendering")
-            # Rendering a Gray code pattern.
-            if self.iteration != 0:
-                self.gray_code_state.progress_state()
-
-            if self.gray_code_state.is_sequence_finished():
-                self.gray_code_panel.set_gray_code_state(None)
+        if self.iteration == self.black_iteration:
+            if self.is_render:
+                # Render a black frame.
+                self.gray_code_panel.render_black = True
+                self.gray_code_panel.render_white = False
+                self.gray_code_panel.Refresh()
+                self.is_render = False
             else:
-                self.gray_code_panel.set_gray_code_state(self.gray_code_state)
-
-            # Trigger a render, then capture an image.
-            # We might need to pause for a second or so.
-            self.gray_code_panel.Refresh()
-
-            self.is_render = False
-        else:
-            print("Capturing")
-            if self.iteration < self.gray_code_state.get_num_bit_planes():
-                # Capturing an Gray code pattern.
+                # Capture the black frame.
                 image = self.camera_panel.capture_image()
                 gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 self.camera_panel.Refresh()
@@ -79,10 +73,64 @@ class GrayCodeController():
                 image = Image.fromarray(gray_image)
                 print("Captured image:", image)
                 # image = image.convert('gray')
-                image.save("graycode_%0d.png" % (self.iteration))
+                image.save("black.png" % (self.iteration))
 
-            self.is_render = True
-            self.iteration += 1
+                self.is_render = True
+                self.iteration += 1
+
+        elif self.iteration == self.white_iteration:
+            if self.is_render:
+                self.gray_code_panel.render_black = False
+                self.gray_code_panel.render_white = True
+                self.gray_code_panel.Refresh()
+                self.is_render = False
+            else:
+                # Capture the black frame.
+                image = self.camera_panel.capture_image()
+                gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                self.camera_panel.Refresh()
+
+                image = Image.fromarray(gray_image)
+                print("Captured image:", image)
+                # image = image.convert('gray')
+                image.save("white.png" % (self.iteration))
+
+                self.is_render = True
+                self.iteration += 1
+        else:
+            if self.is_render:
+                print("Rendering")
+                self.gray_code_panel.render_black = False
+                self.gray_code_panel.render_white = False
+                # Rendering a Gray code pattern.
+                if self.iteration != self.first_gray_code_iteration:
+                    self.gray_code_state.progress_state()
+
+                if self.gray_code_state.is_sequence_finished():
+                    self.gray_code_panel.set_gray_code_state(None)
+                else:
+                    self.gray_code_panel.set_gray_code_state(self.gray_code_state)
+
+                # Trigger a render, then capture an image.
+                # We might need to pause for a second or so.
+                self.gray_code_panel.Refresh()
+
+                self.is_render = False
+            else:
+                print("Capturing")
+                if self.iteration < self.last_gray_code_iteration:
+                    # Capturing an Gray code pattern.
+                    image = self.camera_panel.capture_image()
+                    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    self.camera_panel.Refresh()
+
+                    image = Image.fromarray(gray_image)
+                    print("Captured image:", image)
+                    # image = image.convert('gray')
+                    image.save("graycode_%0d.png" % (self.iteration))
+
+                self.is_render = True
+                self.iteration += 1
 
 class GrayCodeState():
     """
@@ -142,6 +190,9 @@ class GrayCodePanel(wx.Panel):
         # Initially no Gray code state to render.
         self.gray_code_state = None
 
+        self.render_black = False
+        self.render_white = False
+
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
         if 0:
@@ -175,17 +226,12 @@ class GrayCodePanel(wx.Panel):
                 dc.SetBrush(wx.Brush("red"))
                 dc.DrawRectangle(220 + i*10,10,200 + i*10,200)
 
-        # Render dynamic Gray code stuff.
-        if 1:
-            state = self.gray_code_state
-            if state is not None:
-                self.render_gray_code(state)
-            if 0:
-                # Increment the gray code state.
-                state.progress_state()
-                if not state.is_sequence_finished():
-                    # Start a new timer, to render the next bit plane.
-                    self.timer.Start(2000)
+        if self.render_black:
+            self.SetBackgroundColour("black")
+        elif self.render_white:
+            self.SetBackgroundColour("white")
+        elif self.gray_code_state is not None:
+            self.render_gray_code(self.gray_code_state)
 
     def timer_update(self, event):
         """
@@ -211,8 +257,10 @@ class GrayCodePanel(wx.Panel):
         """
         Renders the current Gray code sequence in the given state.
         """
-        # print("render_gray_code")
+        print("render_gray_code")
         # state = event.gray_code_state
+
+        self.SetBackgroundColour("black")
 
         # Get the current bit plane.
         bit_plane = state.get_current_bit_plane()
@@ -234,6 +282,6 @@ class GrayCodePanel(wx.Panel):
                 dc.DrawRectangle(x, 0, 1, self.window_size[1])
 
 if __name__ == '__main__':
-    full_screen = True
+    full_screen = False
     capture_images = True
     controller = GrayCodeController(full_screen, capture_images)
