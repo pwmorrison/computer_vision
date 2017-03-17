@@ -106,7 +106,7 @@ def decode_bit_plane_images(bit_plane_images, threshold):
         w, h = im.size
         im_data = list(im.getdata())
         im_data = np.asarray(im_data)
-        im_data = im_data.reshape((w, h))
+        im_data = im_data.reshape((h, w))
 
         # Threshold the data.
         im_data[im_data <= threshold] = 0
@@ -116,18 +116,19 @@ def decode_bit_plane_images(bit_plane_images, threshold):
 
         # print(image, im_data)
 
-    all_data = np.asarray(bit_planes)
-    # print("all_data(depth, width, height):", all_data.shape)
-    # print("all_data:", all_data)
 
-    depth, width, height = all_data.shape
+    all_data = np.asarray(bit_planes)
+    print("all_data(depth, width, height):", all_data.shape)
+    print("all_data:", all_data)
+
+    depth, height, width = all_data.shape
     print(depth, width, height)
     for y in range(height):
         for x in range(width):
             # Decode this position.
             bits = []
             for d in range(depth):
-                bit = all_data[d, x, y]
+                bit = all_data[d, y, x]
                 bits.append(str(bit))
             # We appended to the list in order of increasing bit planes, so we need to reverse it.
             bits = list(reversed(bits))
@@ -136,7 +137,7 @@ def decode_bit_plane_images(bit_plane_images, threshold):
             binary_num = gray_code_to_binary(gray_code_num)
             print("(x:%d, y:%d): bits: %s, gray code num: %d, binary num: %d" % (x, y, bits, gray_code_num, binary_num))
 
-        return
+        # return
 
 if __name__ == "__main__":
     width = 4
