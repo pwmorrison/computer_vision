@@ -189,43 +189,49 @@ def output_warp_map(warp_map_dict_horiz, warp_map_dict_vert, image_dim):
     if warp_map_dict_horiz is not None:
         im_horiz.save("warp_map_horiz.png")
 
+def generate_gray_code_images(is_horizontal, image_dim, image_file_prefix):
+    # Generate the gray code sequences to cover the largest possible coordinate.
+    if is_horizontal:
+        max_value = image_dim[0]
+    else:
+        max_value = image_dim[1]
+    gray_code_arrays = generate_gray_code_sequence(max_value)
+
+    # Convert the sequence to bit planes.
+    bit_planes = generate_gray_code_bit_planes(gray_code_arrays)
+
+    # Render the bit planes to images.
+    bit_plane_images = []
+    for bit_plane_num in range(bit_planes.shape[0]):
+        index = bit_planes.shape[0] - bit_plane_num - 1
+        bit_plane = bit_planes[index, :]
+        im = generate_bit_plane_image(bit_plane, is_horizontal, width, height)
+        image_name = "bit_planes/%s_%d.png" % (image_file_prefix, bit_plane_num)
+        im.save(image_name)
+        bit_plane_images.append(image_name)
+
+    # Decode the bit planes.
+    # decode_gray_code_bit_planes(bit_planes)
+    warp_map_horiz = decode_bit_plane_images(bit_plane_images, 128)
+    print(warp_map_horiz)
+
+    output_warp_map(warp_map_horiz, None, (width, height))
+
+
 if __name__ == "__main__":
 
     if 1:
         # Test code for generating gray code frames and decoding them.
-
         width = 12
-        height = 3
+        height = 4
+        generate_horizontal = True
+        generate_vertical = True
 
-        # Generate the gray code sequences to cover the largest possible coordinate.
-        gray_code_arrays = generate_gray_code_sequence(max(width, height))
+        if generate_horizontal:
+            generate_gray_code_images(True, (width, height), "horizontal")
+        if generate_vertical:
+            generate_gray_code_images(False, (width, height), "vertical")
 
-        # Convert the sequence to bit planes.
-        bit_planes = generate_gray_code_bit_planes(gray_code_arrays)
-
-        # Render the bit planes to images.
-        bit_plane_images = []
-        for bit_plane_num in range(bit_planes.shape[0]):
-            index = bit_planes.shape[0] - bit_plane_num - 1
-            bit_plane = bit_planes[index, :]
-            im = generate_bit_plane_image(bit_plane, True, width, height)
-            image_name = "horizontal_%d.png" % (bit_plane_num)
-            im.save(image_name)
-            bit_plane_images.append(image_name)
-
-        # Decode the bit planes.
-        # decode_gray_code_bit_planes(bit_planes)
-        warp_map = decode_bit_plane_images(bit_plane_images, 128)
-        print(warp_map)
-
-        output_warp_map(warp_map, None, (width, height))
-
-        sys.exit(0)
-
-        for bit_plane_num in range(bit_planes.shape[0]):
-            bit_plane = bit_planes[bit_plane_num, :]
-            im = generate_bit_plane_image(bit_plane, False, width, height)
-            im.save("vertical_%d.png" % (bit_plane_num))
 elif 0:
     # Test code for decoding gray code frames captured by a real camera.
     frame_dir = r"C:\Users\Paul\computer_vision\gray_code"
