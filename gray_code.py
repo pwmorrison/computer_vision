@@ -119,6 +119,9 @@ def decode_bit_plane_images(bit_plane_images, threshold):
     # print("all_data(depth, width, height):", all_data.shape)
     # print("all_data:", all_data)
 
+    # A warp map, from camera image pixel to decoded projector pixel.
+    warp_map_dict = {}
+
     depth, height, width = all_data.shape
     print(depth, width, height)
     print('')
@@ -135,36 +138,85 @@ def decode_bit_plane_images(bit_plane_images, threshold):
             gray_code_num = int(''.join(bits), 2)
             binary_num = gray_code_to_binary(gray_code_num)
             print("(x:%d, y:%d): bits: %s, gray code num: %d, binary num: %d" % (x, y, bits, gray_code_num, binary_num))
+
+            warp_map_dict[(x, y)] = binary_num
         print('')
-        # return
+
+    return warp_map_dict
+
+def output_warp_map(warp_map_dict_horiz, warp_map_dict_vert, image_dim):
+    """
+    Output the warp map to a csv file and an image (for debugging).
+    """
+    # Form a list of camera positions that are in both the horizontal and vertical warp maps.
+    horiz_cam_positions = []
+    if warp_map_dict_horiz is not None:
+        horiz_cam_positions = warp_map_dict_horiz.keys()
+    vert_cam_positions = []
+    if warp_map_dict_vert is not None:
+        vert_cam_positions = warp_map_dict_vert.keys()
+    camera_positions = list(set(horiz_cam_positions + vert_cam_positions))
+    camera_positions.sort()
+
+    csv_file = open("warp_map.csv", "wb")
+    row_str = "cam_x, cam_y, proj_x, proj_y\n"
+    csv_file.write(row_str)
+
+    im = Image.new("RGB", image_dim)
+
+    for camera_position in camera_positions:
+        print(camera_position)
+
+        # Get the projector position.
+        projector_x = ""
+        if warp_map_dict_horiz is not None:
+            projector_x = warp_map_dict_horiz[camera_position]
+        projector_y = ""
+        if warp_map_dict_vert is not None:
+            projector_y = warp_map_dict_vert[camera_position]
+
+        row_str = "%s, %s, %s, %s\n" % (camera_position[0], camera_position[1], projector_x, projector_y)
+        csv_file.write(row_str)
+
+    csv_file.close()
 
 if __name__ == "__main__":
-    width = 12
-    height = 3
 
-    # Generate the gray code sequences to cover the largest possible coordinate.
-    gray_code_arrays = generate_gray_code_sequence(max(width, height))
+    if 1:
+        # Test code for generating gray code frames and decoding them.
 
-    # Convert the sequence to bit planes.
-    bit_planes = generate_gray_code_bit_planes(gray_code_arrays)
+        width = 12
+        height = 3
 
-    # Render the bit planes to images.
-    bit_plane_images = []
-    for bit_plane_num in range(bit_planes.shape[0]):
-        index = bit_planes.shape[0] - bit_plane_num - 1
-        bit_plane = bit_planes[index, :]
-        im = generate_bit_plane_image(bit_plane, True, width, height)
-        image_name = "horizontal_%d.png" % (bit_plane_num)
-        im.save(image_name)
-        bit_plane_images.append(image_name)
+        # Generate the gray code sequences to cover the largest possible coordinate.
+        gray_code_arrays = generate_gray_code_sequence(max(width, height))
 
-    # Decode the bit planes.
-    # decode_gray_code_bit_planes(bit_planes)
-    decode_bit_plane_images(bit_plane_images, 128)
+        # Convert the sequence to bit planes.
+        bit_planes = generate_gray_code_bit_planes(gray_code_arrays)
 
-    sys.exit(0)
+        # Render the bit planes to images.
+        bit_plane_images = []
+        for bit_plane_num in range(bit_planes.shape[0]):
+            index = bit_planes.shape[0] - bit_plane_num - 1
+            bit_plane = bit_planes[index, :]
+            im = generate_bit_plane_image(bit_plane, True, width, height)
+            image_name = "horizontal_%d.png" % (bit_plane_num)
+            im.save(image_name)
+            bit_plane_images.append(image_name)
 
-    for bit_plane_num in range(bit_planes.shape[0]):
-        bit_plane = bit_planes[bit_plane_num, :]
-        im = generate_bit_plane_image(bit_plane, False, width, height)
-        im.save("vertical_%d.png" % (bit_plane_num))
+        # Decode the bit planes.
+        # decode_gray_code_bit_planes(bit_planes)
+        warp_map = decode_bit_plane_images(bit_plane_images, 128)
+        print(warp_map)
+
+        output_warp_map(warp_map, None, (width, height))
+
+        sys.exit(0)
+
+        for bit_plane_num in range(bit_planes.shape[0]):
+            bit_plane = bit_planes[bit_plane_num, :]
+            im = generate_bit_plane_image(bit_plane, False, width, height)
+            im.save("vertical_%d.png" % (bit_plane_num))
+elif 0:
+    # Test code for decoding gray code frames captured by a real camera.
+    frame_dir = r"C:\Users\Paul\computer_vision\gray_code"
