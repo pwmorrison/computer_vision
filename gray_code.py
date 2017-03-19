@@ -162,7 +162,10 @@ def output_warp_map(warp_map_dict_horiz, warp_map_dict_vert, image_dim):
     row_str = "cam_x, cam_y, proj_x, proj_y\n"
     csv_file.write(row_str)
 
-    im = Image.new("RGB", image_dim)
+    if warp_map_dict_horiz is not None:
+        im_horiz = Image.new("RGB", image_dim)
+    if warp_map_dict_vert is not None:
+        im_vert = Image.new("RGB", image_dim)
 
     for camera_position in camera_positions:
         print(camera_position)
@@ -178,7 +181,13 @@ def output_warp_map(warp_map_dict_horiz, warp_map_dict_vert, image_dim):
         row_str = "%s, %s, %s, %s\n" % (camera_position[0], camera_position[1], projector_x, projector_y)
         csv_file.write(row_str)
 
+        if warp_map_dict_horiz is not None:
+            val = float(projector_x) / image_dim[0] * 255
+            im_horiz.putpixel((int(camera_position[0]), int(camera_position[1])), (0, int(val), 0))
+
     csv_file.close()
+    if warp_map_dict_horiz is not None:
+        im_horiz.save("warp_map_horiz.png")
 
 if __name__ == "__main__":
 
