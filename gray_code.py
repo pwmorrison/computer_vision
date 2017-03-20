@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 import sys
 import cv2
+from glob import glob
 
 def number_to_gray_code_array(num, num_bits):
     # The equivalent gray code number.
@@ -210,28 +211,41 @@ def generate_gray_code_images(is_horizontal, image_dim, image_file_prefix):
         im.save(image_name)
         bit_plane_images.append(image_name)
 
-    # Decode the bit planes.
-    # decode_gray_code_bit_planes(bit_planes)
-    warp_map_horiz = decode_bit_plane_images(bit_plane_images, 128)
-    print(warp_map_horiz)
-
-    output_warp_map(warp_map_horiz, None, (width, height))
-
 
 if __name__ == "__main__":
 
-    if 1:
+    if 0:
         # Test code for generating gray code frames and decoding them.
+        frame_dir = r"bit_planes/"
         width = 12
         height = 4
         generate_horizontal = True
         generate_vertical = True
 
+        warp_map_horiz = None
+        warp_map_vert = None
         if generate_horizontal:
+            # Generate the bit plane images.
             generate_gray_code_images(True, (width, height), "horizontal")
+            # Decode the bit planes, to generate a warp map.
+            images = glob(frame_dir + "horizontal*.png")
+            warp_map_horiz = decode_bit_plane_images(images, 128)
         if generate_vertical:
+            # Generate the bit plane images.
             generate_gray_code_images(False, (width, height), "vertical")
+            # Decode the bit planes, to generate a warp map.
+            images = glob(frame_dir + "vertical*.png")
+            warp_map_vert = decode_bit_plane_images(images, 128)
 
-elif 0:
-    # Test code for decoding gray code frames captured by a real camera.
-    frame_dir = r"C:\Users\Paul\computer_vision\gray_code"
+        output_warp_map(warp_map_horiz, warp_map_vert, (width, height))
+
+    elif 1:
+        # Test code for decoding gray code frames captured by a real camera.
+        frame_dir = r"C:/Users/Paul/computer_vision/gray_code/"
+        warp_map_horiz = None
+        generate_horizontal = True
+
+        if generate_horizontal:
+            # Decode the bit planes, to generate a warp map.
+            images = glob(frame_dir + "graycode*.png")
+            warp_map_horiz = decode_bit_plane_images(images, 128)
