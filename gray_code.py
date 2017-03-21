@@ -138,10 +138,10 @@ def decode_bit_plane_images(bit_plane_images, threshold):
             # print("Bits at position %d: %s" % (x, tuple(bits)))
             gray_code_num = int(''.join(bits), 2)
             binary_num = gray_code_to_binary(gray_code_num)
-            print("(x:%d, y:%d): bits: %s, gray code num: %d, binary num: %d" % (x, y, bits, gray_code_num, binary_num))
+            # print("(x:%d, y:%d): bits: %s, gray code num: %d, binary num: %d" % (x, y, bits, gray_code_num, binary_num))
 
             warp_map_dict[(x, y)] = binary_num
-        print('')
+        # print('')
 
     return warp_map_dict
 
@@ -242,10 +242,15 @@ if __name__ == "__main__":
     elif 1:
         # Test code for decoding gray code frames captured by a real camera.
         frame_dir = r"C:/Users/Paul/computer_vision/gray_code/"
+        width = 640
+        height = 480
         warp_map_horiz = None
+        warp_map_vert = None
         generate_horizontal = True
 
         if generate_horizontal:
             # Decode the bit planes, to generate a warp map.
             images = glob(frame_dir + "graycode*.png")
             warp_map_horiz = decode_bit_plane_images(images, 128)
+
+        output_warp_map(warp_map_horiz, warp_map_vert, (width, height))
