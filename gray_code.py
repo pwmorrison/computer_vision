@@ -110,8 +110,8 @@ def decode_bit_plane_images(bit_plane_images, threshold):
         im_data = im_data.reshape((h, w))
 
         # Threshold the data.
-        im_data[im_data <= threshold] = 0
-        im_data[im_data > threshold] = 1
+        # im_data[im_data <= threshold] = 0
+        # im_data[im_data > threshold] = 1
 
         bit_planes.append(im_data)
         # print(image, im_data)
@@ -132,6 +132,10 @@ def decode_bit_plane_images(bit_plane_images, threshold):
             bits = []
             for d in range(depth):
                 bit = all_data[d, y, x]
+                if bit >= threshold:
+                    bit = 1
+                else:
+                    bit = 0
                 bits.append(str(bit))
             # We appended to the list in order of increasing bit planes, so we need to reverse it.
             bits = list(reversed(bits))
@@ -145,7 +149,7 @@ def decode_bit_plane_images(bit_plane_images, threshold):
 
     return warp_map_dict
 
-def output_warp_map(warp_map_dict_horiz, warp_map_dict_vert, image_dim):
+def output_warp_map(warp_map_dict_horiz, warp_map_dict_vert, image_dim, proj_img_dim):
     """
     Output the warp map to a csv file and an image (for debugging).
     """
@@ -169,7 +173,7 @@ def output_warp_map(warp_map_dict_horiz, warp_map_dict_vert, image_dim):
         im_vert = Image.new("RGB", image_dim)
 
     for camera_position in camera_positions:
-        print(camera_position)
+        # print(camera_position)
 
         # Get the projector position.
         projector_x = ""
@@ -183,8 +187,12 @@ def output_warp_map(warp_map_dict_horiz, warp_map_dict_vert, image_dim):
         csv_file.write(row_str)
 
         if warp_map_dict_horiz is not None:
-            val = float(projector_x) / image_dim[0] * 255
-            im_horiz.putpixel((int(camera_position[0]), int(camera_position[1])), (0, int(val), 0))
+            if projector_x > proj_img_dim[0]:
+                # The decoded position being too large is an error.
+                im_horiz.putpixel((int(camera_position[0]), int(camera_position[1])), (255, 0, 0))
+            else:
+                val = float(projector_x) / proj_img_dim[0] * 255
+                im_horiz.putpixel((int(camera_position[0]), int(camera_position[1])), (0, int(val), 0))
 
     csv_file.close()
     if warp_map_dict_horiz is not None:
@@ -244,6 +252,7 @@ if __name__ == "__main__":
         frame_dir = r"C:/Users/Paul/computer_vision/gray_code/"
         width = 640
         height = 480
+        proj_img_dim = (2560, 1440)
         warp_map_horiz = None
         warp_map_vert = None
         generate_horizontal = True
@@ -251,6 +260,7 @@ if __name__ == "__main__":
         if generate_horizontal:
             # Decode the bit planes, to generate a warp map.
             images = glob(frame_dir + "graycode*.png")
-            warp_map_horiz = decode_bit_plane_images(images, 128)
+            images.sort()
+            warp_map_horiz = decode_bit_plane_images(images, 80)
 
-        output_warp_map(warp_map_horiz, warp_map_vert, (width, height))
+        output_warp_map(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
