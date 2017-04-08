@@ -1,7 +1,7 @@
 import wx
 import cv2
 import sys
-import skvideo.io
+# import skvideo.io
 import pygame
 import pygame.camera
 from pygame.locals import *
@@ -14,7 +14,7 @@ Good tutorial: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutori
 Property IDs: http://docs.opencv.org/2.4/modules/highgui/doc/reading_and_writing_images_and_video.html#videocapture-get
 """
 
-capture_library = "pygame"
+capture_library = "opencv"
 
 class ShowCapture(wx.Panel):
     def __init__(self, parent, capture, fps=10):
@@ -25,13 +25,15 @@ class ShowCapture(wx.Panel):
         self.wx_im = wx.EmptyImage(640, 480)
 
         # Get a frame.
-        # if capture_library == "opencv":
-        #     frame, width, height = self.capture_frame_opencv()
-        #     self.bmp = wx.BitmapFromBuffer(width, height, frame)
+        if capture_library == "opencv":
+            frame, width, height = self.capture_frame_opencv()
+            self.bmp = wx.BitmapFromBuffer(width, height, frame)
+            parent.SetSize((width, height))
         # elif capture_library == "pygame":
         #     frame, width, height = self.capture_frame_pygame()
         #     self.bmp = frame
         self.capture_image()
+
 
         # print("Frame:", frame)
         # print("Frame shape:", frame.shape)
@@ -46,11 +48,13 @@ class ShowCapture(wx.Panel):
     def capture_frame_opencv(self):
         ret, frame = self.capture.read()
         # Try again.
-        if frame is None:
-            ret, frame = self.capture.read()
-        print(ret, frame)
+        # if frame is None:
+        #     ret, frame = self.capture.read()
+        # print(ret, frame)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        width, height = cv2.GetSize(frame) # PAUL: Not sure if this is correct. Possibly call shape[:2].
+        height, width = frame.shape[:2]
+        print(width, height)
+        # width, height = cv2.GetSize(frame) # PAUL: Not sure if this is correct. Possibly call shape[:2].
         return frame, width, height
 
 
@@ -111,13 +115,15 @@ class ShowCapture(wx.Panel):
 
         self.capture_image()
 
+
         self.Refresh()
 
     def capture_image(self):
         # Get a frame.
         if capture_library == "opencv":
             frame, width, height = self.capture_frame_opencv()
-            self.bmp = wx.BitmapFromBuffer(width, height, frame)
+            # self.bmp = wx.BitmapFromBuffer(width, height, frame)
+            self.bmp.CopyFromBuffer(frame)
         elif capture_library == "pygame":
             frame, width, height = self.capture_frame_pygame()
             self.bmp = frame
@@ -153,7 +159,7 @@ if __name__ == '__main__':
     # capture.set(cv2.CV_CAP_PROP_FRAME_HEIGHT, 240)
 
     app = wx.App()
-    frame = wx.Frame(None, size=(640, 480))
+    frame = wx.Frame(None)#, size=(640, 480))
     cap = ShowCapture(frame, capture)
     frame.Show()
     app.MainLoop()
