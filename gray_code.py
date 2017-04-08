@@ -107,6 +107,7 @@ def decode_bit_plane_images(bit_plane_images, threshold):
         w, h = im.size
         im_data = list(im.getdata())
         im_data = np.asarray(im_data)
+        print(im_data.shape)
         im_data = im_data.reshape((h, w))
 
         # Threshold the data.
@@ -249,10 +250,18 @@ if __name__ == "__main__":
 
     elif 1:
         # Test code for decoding gray code frames captured by a real camera.
-        frame_dir = r"C:/Users/Paul/computer_vision/gray_code/"
-        width = 640
-        height = 480
-        proj_img_dim = (2560, 1440)
+        if 0:
+            # Images captured on laptop.
+            frame_dir = r"gray_code/"
+            width = 640
+            height = 480
+            proj_img_dim = (2560, 1440)
+        elif 1:
+            # Images captured on linux box.
+            frame_dir = r"gray_code_2/"
+            width = 640
+            height = 480
+            proj_img_dim = (1920, 1080)
         warp_map_horiz = None
         warp_map_vert = None
         generate_horizontal = True
