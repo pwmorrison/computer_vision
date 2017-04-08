@@ -92,7 +92,7 @@ class GrayCodeController():
                 # image = Image.fromarray(gray_image)
                 print("Captured image:", image)
                 # image = image.convert('gray')
-                image.save("black_%d.png" % (self.iteration))
+                image.save("black.png")
 
                 self.is_render = True
                 self.iteration += 1
@@ -114,7 +114,7 @@ class GrayCodeController():
                 # image = Image.fromarray(gray_image)
                 print("Captured image:", image)
                 # image = image.convert('gray')
-                image.save("white_%d.png" % (self.iteration))
+                image.save("white.png")
 
                 self.is_render = True
                 self.iteration += 1
@@ -150,7 +150,7 @@ class GrayCodeController():
                     # image = Image.fromarray(gray_image)
                     print("Captured image:", image)
                     # image = image.convert('gray')
-                    image.save("graycode_%0d.png" % (self.iteration))
+                    image.save("graycode_%02d.png" % (self.iteration - self.first_gray_code_iteration))
 
                 self.is_render = True
                 self.iteration += 1
