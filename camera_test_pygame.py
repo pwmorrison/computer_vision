@@ -27,16 +27,11 @@ class ShowCapture(wx.Panel):
         # Get a frame.
         if capture_library == "opencv":
             frame, width, height = self.capture_frame_opencv()
-            self.bmp = wx.BitmapFromBuffer(width, height, frame)
-            parent.SetSize((width, height))
         elif capture_library == "pygame":
             frame, width, height = self.capture_frame_pygame()
-            self.bmp = frame
-            parent.SetSize((width, height))
+        self.bmp = wx.BitmapFromBuffer(width, height, frame)
 
-        # print("Frame:", frame)
-        # print("Frame shape:", frame.shape)
-        # self.bmp = wx.BitmapFromBuffer(width, height, frame)
+        parent.SetSize((width, height))
 
         self.timer = wx.Timer(self)
         self.timer.Start(1000./fps)
@@ -44,16 +39,12 @@ class ShowCapture(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_TIMER, self.NextFrame)
 
+
     def capture_frame_opencv(self):
         ret, frame = self.capture.read()
-        # Try again.
-        # if frame is None:
-        #     ret, frame = self.capture.read()
-        # print(ret, frame)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         height, width = frame.shape[:2]
         print(width, height)
-        # width, height = cv2.GetSize(frame) # PAUL: Not sure if this is correct. Possibly call shape[:2].
         return frame, width, height
 
 
@@ -61,41 +52,9 @@ class ShowCapture(wx.Panel):
         image = self.capture.get_image()
         # pygame.image.save(image, 'pygame_image.jpeg')
         width, height = image.get_size()
-        if 0:
-            image = pygame.surfarray.array3d(image)
-            image = np.array(image)
-            image = image.astype(np.uint8)
-        else:
-            surf = image
-            # data = pygame.image.tostring(surf, "RGB")
-            # data = pygame.surfarray.array3d(surf)
-            if 1:
-                pil_string_image = pygame.image.tostring(surf, "RGB", False)
-                # im = Image.frombytes("RGB", (640, 480), pil_string_image)
+        pil_string_image = pygame.image.tostring(image, "RGB", False)
 
-
-                # self.wx_im.SetData(im.convert("RGB").tobytes())
-                # wx_bitmap = wx.BitmapFromImage(self.wx_im)
-                wx_bitmap = wx.BitmapFromBuffer(width, height, pil_string_image)
-
-                # im.save("pil_image.png")
-                # data = im.getdata()
-                # data = np.array(data)
-                # data = np.reshape(data, (640, 480, 3))
-            # print(data)
-            # print(data.dtype, data.shape)
-            # data = np.array(data)
-            # print(data)
-            # image = wx.ImageFromData(surf.get_width(), surf.get_height(), data).ConvertToBitmap(24)
-            # image = wx.BitmapFromBuffer(surf.get_width(), surf.get_height(), data)
-        # print(type(image))
-        # print(image[0])
-        # image = np.transpose(image, [1, 0, 2])
-        # print(image.shape)
-        # print(image.dtype)
-        # print(image, width, height)
-        return wx_bitmap, surf.get_width(), surf.get_height()
-        # return image, width, height
+        return pil_string_image, width, height
 
 
     def OnPaint(self, evt):
@@ -104,31 +63,18 @@ class ShowCapture(wx.Panel):
         dc.DrawBitmap(self.bmp, 0, 0)
 
     def NextFrame(self, event):
-        # Get a frame.
-        # if capture_library == "opencv":
-        #     frame, width, height = self.capture_frame_opencv()
-        # elif capture_library == "pygame":
-        #     frame, width, height = self.capture_frame_pygame()
-        #
-        # self.bmp.CopyFromBuffer(frame)
-
         self.capture_image()
-
-
         self.Refresh()
 
     def capture_image(self):
         # Get a frame.
         if capture_library == "opencv":
             frame, width, height = self.capture_frame_opencv()
-            # self.bmp = wx.BitmapFromBuffer(width, height, frame)
-            self.bmp.CopyFromBuffer(frame)
         elif capture_library == "pygame":
             frame, width, height = self.capture_frame_pygame()
-            self.bmp = frame
-        # print(frame.shape)
-        # print(width, height)
-        # self.bmp = wx.BitmapFromBuffer(width, height, frame)
+
+        self.bmp.CopyFromBuffer(frame)
+
 
 if __name__ == '__main__':
 
