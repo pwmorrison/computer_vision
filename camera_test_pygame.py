@@ -14,7 +14,7 @@ Good tutorial: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutori
 Property IDs: http://docs.opencv.org/2.4/modules/highgui/doc/reading_and_writing_images_and_video.html#videocapture-get
 """
 
-capture_library = "opencv"
+capture_library = "pygame"
 
 class ShowCapture(wx.Panel):
     def __init__(self, parent, capture, fps=10):
@@ -29,11 +29,10 @@ class ShowCapture(wx.Panel):
             frame, width, height = self.capture_frame_opencv()
             self.bmp = wx.BitmapFromBuffer(width, height, frame)
             parent.SetSize((width, height))
-        # elif capture_library == "pygame":
-        #     frame, width, height = self.capture_frame_pygame()
-        #     self.bmp = frame
-        self.capture_image()
-
+        elif capture_library == "pygame":
+            frame, width, height = self.capture_frame_pygame()
+            self.bmp = frame
+            parent.SetSize((width, height))
 
         # print("Frame:", frame)
         # print("Frame shape:", frame.shape)
