@@ -6,10 +6,14 @@ from PIL import Image
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
 from gray_code_camera_panel import GrayCodeCameraPanel
 from image_render_panel import ImageRenderPanel
+import pygame
+import pygame.camera
 
 """
 Main file for rendering gray code patterns, and capturing images of the patterns.
 """
+
+capture_library = "pygame"
 
 class GrayCodeController():
     def __init__(self, full_screen, capture_images):
@@ -29,10 +33,19 @@ class GrayCodeController():
 
         if capture_images:
             # Set up the camera.
-            camera_number = 0
-            capture = cv2.VideoCapture(camera_number)
+            if capture_library == "opencv":
+                camera_number = 0
+                capture = cv2.VideoCapture(camera_number)
+            elif capture_library == "pygame":
+                pygame.init()
+                pygame.camera.init()
+                print(pygame.camera.list_cameras())
+                cam = pygame.camera.Camera("/dev/video0", (640, 480))
+                cam.start()
+                capture = cam
+
             camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
-            self.camera_panel = GrayCodeCameraPanel(camera_frame, capture)
+            self.camera_panel = GrayCodeCameraPanel(camera_frame, capture, capture_library)
             camera_frame.Show(True)
 
         # Timer to kick off processing, after the go into the event loop.
@@ -67,13 +80,14 @@ class GrayCodeController():
             else:
                 # Capture the black frame.
                 image = self.camera_panel.capture_image()
-                gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
                 self.camera_panel.Refresh()
 
-                image = Image.fromarray(gray_image)
+                # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                # image = Image.fromarray(gray_image)
                 print("Captured image:", image)
                 # image = image.convert('gray')
-                image.save("black.png" % (self.iteration))
+                image.save("black_%d.png" % (self.iteration))
 
                 self.is_render = True
                 self.iteration += 1
@@ -87,13 +101,13 @@ class GrayCodeController():
             else:
                 # Capture the black frame.
                 image = self.camera_panel.capture_image()
-                gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 self.camera_panel.Refresh()
 
-                image = Image.fromarray(gray_image)
+                # image = Image.fromarray(gray_image)
                 print("Captured image:", image)
                 # image = image.convert('gray')
-                image.save("white.png" % (self.iteration))
+                image.save("white_%d.png" % (self.iteration))
 
                 self.is_render = True
                 self.iteration += 1
@@ -121,10 +135,10 @@ class GrayCodeController():
                 if self.iteration < self.last_gray_code_iteration:
                     # Capturing an Gray code pattern.
                     image = self.camera_panel.capture_image()
-                    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                     self.camera_panel.Refresh()
 
-                    image = Image.fromarray(gray_image)
+                    # image = Image.fromarray(gray_image)
                     print("Captured image:", image)
                     # image = image.convert('gray')
                     image.save("graycode_%0d.png" % (self.iteration))
