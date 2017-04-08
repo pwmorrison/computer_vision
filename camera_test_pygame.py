@@ -12,12 +12,10 @@ Property IDs: http://docs.opencv.org/2.4/modules/highgui/doc/reading_and_writing
 capture_library = "pygame"
 
 class ShowCapture(wx.Panel):
-    def __init__(self, parent, capture, fps=10):
+    def __init__(self, parent, capture, fps=1):
         wx.Panel.__init__(self, parent)
 
         self.capture = capture
-
-        self.wx_im = wx.EmptyImage(640, 480)
 
         # Get a frame.
         if capture_library == "opencv":
