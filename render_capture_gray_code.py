@@ -13,7 +13,7 @@ import pygame.camera
 Main file for rendering gray code patterns, and capturing images of the patterns.
 """
 
-capture_library = "pygame"
+capture_library = "streamer"
 
 class GrayCodeController():
     def __init__(self, full_screen, capture_images):
@@ -43,6 +43,8 @@ class GrayCodeController():
                 cam = pygame.camera.Camera("/dev/video0", (640, 480))
                 cam.start()
                 capture = cam
+            elif capture_library == "streamer":
+                capture = None
 
             camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
             self.camera_panel = GrayCodeCameraPanel(camera_frame, capture, capture_library)

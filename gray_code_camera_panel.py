@@ -3,6 +3,7 @@ import cv2
 import pygame
 import pygame.camera
 from PIL import Image
+from subprocess import call
 
 """
 Code taken from here: http://stackoverflow.com/questions/14804741/opencv-integration-with-wxpython
@@ -29,6 +30,8 @@ class GrayCodeCameraPanel(wx.Panel):
             frame, width, height = self.capture_frame_opencv()
         elif capture_library == "pygame":
             frame, width, height = self.capture_frame_pygame()
+        elif capture_library == "streamer":
+            frame, width, height = self.capture_frame_streamer()
         self.bmp = wx.BitmapFromBuffer(width, height, frame)
 
         # height, width = frame.shape[:2]
@@ -80,12 +83,23 @@ class GrayCodeCameraPanel(wx.Panel):
 
         return pil_string_image, width, height
 
+    def capture_frame_streamer(self):
+        filename = "/home/paul/streamer_image.jpeg"
+        # return_code = call(["streamer", "-f ppm", "-s 640x480", "-o " + filename], shell=True)
+        return_code = call(["streamer -f jpeg -s 640x480 -o " + filename], shell=True)
+        im = Image.open(filename)
+        data = im.getdata()
+        # print im
+        return im.tobytes(), im.width, im.height
+
     def capture_image(self):
         # Get a frame.
         if self.capture_library == "opencv":
             frame, width, height = self.capture_frame_opencv()
         elif self.capture_library == "pygame":
             frame, width, height = self.capture_frame_pygame()
+        elif self.capture_library == "streamer":
+            frame, width, height = self.capture_frame_streamer()
 
         self.bmp.CopyFromBuffer(frame)
 
