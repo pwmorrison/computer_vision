@@ -1,12 +1,7 @@
 import wx
 import cv2
-import sys
-# import skvideo.io
 import pygame
 import pygame.camera
-from pygame.locals import *
-import numpy as np
-from PIL import Image
 
 """
 Code taken from here: http://stackoverflow.com/questions/14804741/opencv-integration-with-wxpython
@@ -86,25 +81,21 @@ if __name__ == '__main__':
         print(pygame.camera.list_cameras())
         cam = pygame.camera.Camera("/dev/video0", (640, 480))
         cam.start()
-        i = 0
-        while i < 1000000:
-            if cam.query_image():
-                break
-            i += 1
-        image = cam.get_image()
-        pygame.image.save(image, 'pygame_image.jpeg')
-        print(image)
-        # display = pygame.display.set_mode((640, 480), 0)
-        # display.blit(image, (0, 0))
+        # i = 0
+        # while i < 1000000:
+        #     if cam.query_image():
+        #         break
+        #     i += 1
+        # image = cam.get_image()
+        # pygame.image.save(image, 'pygame_image.jpeg')
+        # print(image)
 
         capture = cam
 
     print("Capture/camera:", capture)
-    # capture.set(cv2.CV_CAP_PROP_FRAME_WIDTH, 320)
-    # capture.set(cv2.CV_CAP_PROP_FRAME_HEIGHT, 240)
 
     app = wx.App()
-    frame = wx.Frame(None)#, size=(640, 480))
+    frame = wx.Frame(None)
     cap = ShowCapture(frame, capture)
     frame.Show()
     app.MainLoop()
