@@ -16,7 +16,7 @@ Main file for rendering gray code patterns, and capturing images of the patterns
 capture_library = "streamer"
 
 class GrayCodeController():
-    def __init__(self, full_screen, capture_images):
+    def __init__(self, full_screen, capture_images, display_captured_images):
         app = wx.App(False)
         # Create frame, no parent, -1 is default ID.
         if not full_screen:
@@ -48,7 +48,9 @@ class GrayCodeController():
 
             camera_frame = wx.Frame(None, -1, "Camera capture", size=window_size)
             self.camera_panel = GrayCodeCameraPanel(camera_frame, capture, capture_library)
-            camera_frame.Show(True)
+
+            if display_captured_images:
+                camera_frame.Show(True)
 
         # Timer to kick off processing, after the go into the event loop.
         self.timer = wx.Timer()
@@ -82,6 +84,7 @@ class GrayCodeController():
             else:
                 # Capture the black frame.
                 image = self.camera_panel.capture_image()
+                image = image.convert('L')
 
                 self.camera_panel.Refresh()
 
@@ -103,6 +106,8 @@ class GrayCodeController():
             else:
                 # Capture the black frame.
                 image = self.camera_panel.capture_image()
+                image = image.convert('L')
+
                 # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 self.camera_panel.Refresh()
 
@@ -137,6 +142,8 @@ class GrayCodeController():
                 if self.iteration < self.last_gray_code_iteration:
                     # Capturing an Gray code pattern.
                     image = self.camera_panel.capture_image()
+                    image = image.convert('L')
+
                     # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                     self.camera_panel.Refresh()
 
@@ -298,6 +305,7 @@ class GrayCodePanel(wx.Panel):
                 dc.DrawRectangle(x, 0, 1, self.window_size[1])
 
 if __name__ == '__main__':
-    full_screen = False
+    full_screen = True
     capture_images = True
-    controller = GrayCodeController(full_screen, capture_images)
+    display_captured_images = False
+    controller = GrayCodeController(full_screen, capture_images, display_captured_images)
