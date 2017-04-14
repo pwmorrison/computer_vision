@@ -1,14 +1,34 @@
 import wx
 
+class MainFrame(wx.Frame):
+    def __init__(
+            self, parent, ID, title, pos=wx.DefaultPosition,
+            size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE
+            ):
+
+        wx.Frame.__init__(self, parent, ID, title, pos, size, style)
+        panel = GrayCodePanel(self, -1)
+
+        button = wx.Button(panel, 1003, "Close Me")
+        button.SetPosition((15, 15))
+        self.Bind(wx.EVT_BUTTON, self.OnCloseMe, button)
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+
+
+    def OnCloseMe(self, event):
+        self.Close(True)
+
+    def OnCloseWindow(self, event):
+        self.Destroy()
+
 class GrayCodePanel(wx.Panel):
     """
     Panel to render Gray code patterns.
     """
-    def __init__(self, parent, id, window_size):
+    def __init__(self, parent, id):
         wx.Panel.__init__(self, parent, id)
         self.SetBackgroundColour("black")
 
-        self.window_size = window_size
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
     def OnPaint(self, event):
@@ -37,10 +57,10 @@ def main():
     app = wx.App(False)
 
     window_size = (500, 500)
-    frame = wx.Frame(None, -1, "Gray code projection", size=window_size)
+    frame = MainFrame(None, -1, "Gray code projection", size=window_size)
 
     # Add a panel to the frame, -1 is default ID
-    gray_code_panel = GrayCodePanel(frame, -1, window_size)
+    # gray_code_panel = GrayCodePanel(frame, -1, window_size)
     # Show the frame
     frame.Show(True)
 
