@@ -19,8 +19,8 @@ class EasyMenu(wx.Menu):
         return self.AppendItem(item)
 
 class ImagePanel(wx.Panel):
-    def __init__(self, parent):
-        super(ImagePanel, self).__init__(parent)
+    def __init__(self, parent, style):
+        super(ImagePanel, self).__init__(parent, style=style)
         # Load the image data into a Bitmap
         theBitmap = wx.Bitmap("images/house1_small_corner.jpg")
         # Create a control that can display the
@@ -59,13 +59,17 @@ class SplitterFrame(wx.Frame):
         # sty = wx.BORDER_SIMPLE
         sty = wx.BORDER_SUNKEN
 
-        p1 = wx.Window(splitter, style=sty)
-        p1.SetBackgroundColour("pink")
-        wx.StaticText(p1, -1, "Panel One", (5, 5))
+        if 0:
+            p1 = wx.Window(splitter, style=sty)
+            p1.SetBackgroundColour("pink")
+            wx.StaticText(p1, -1, "Panel One", (5, 5))
 
-        p2 = wx.Window(splitter, style=sty)
-        p2.SetBackgroundColour("sky blue")
-        wx.StaticText(p2, -1, "Panel Two", (5, 5))
+            p2 = wx.Window(splitter, style=sty)
+            p2.SetBackgroundColour("sky blue")
+            wx.StaticText(p2, -1, "Panel Two", (5, 5))
+        else:
+            p1 = ImagePanel(splitter, style=sty)
+            p2 = ImagePanel(splitter, style=sty)
 
         splitter.SetMinimumPaneSize(20)
         splitter.SplitVertically(p1, p2, -100)
