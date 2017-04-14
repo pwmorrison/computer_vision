@@ -42,8 +42,16 @@ def plot_matches(im1, im2, locs1, locs2, matchscores, show_below=True):
     cols1 = im1.shape[1]
     for i, m in enumerate(matchscores):
         if m > 0:
+            # Plot a line between the im1 position and the im2 position.
+            # Offset the im2.x position by the width of im1, since the images are displayed side-by-side.
+            # plot([x_coords], [y_coords])
             plot([locs1[i][0], locs2[m][0] + cols1], [locs1[i][1], locs2[m][1]], 'c')
     axis('off')
+
+def get_matches(locs1, locs2, matchscores):
+    for i, m in enumerate(matchscores):
+        if m > 0:
+            print("%d:(%d, %d) -> %d:(%d, %d)" % (i, locs1[i][0], locs1[i][1], m, locs2[m][0], locs2[m][1]))
 
 # imname1 = 'C:/Users/Paul/programming-computer-vision-git/PCV/data/climbing_1_small.jpg'
 # imname2 = 'C:/Users/Paul/programming-computer-vision-git/PCV/data/climbing_2_small.jpg'
@@ -66,9 +74,16 @@ l1,d1 = sift.read_features_from_file(imname1+'.sift')
 l2,d2 = sift.read_features_from_file(imname2+'.sift')
 matchscores = sift.match_twosided(d1, d2)
 
+# matchscores will have an entry for each feature in im1.
+# The entry will be 0 if there is not a match.
+# If there is a match, the entry will be the index of the matching feature in im2.
+# matchscores[im1_feat_index] = im2_feat_index, if matchscores[im1_feat_index] != 0
+
 # load images and plot
 im1 = array(Image.open(imname1))
 im2 = array(Image.open(imname2))
+
+get_matches(l1, l2, matchscores)
 
 plot_matches(im1,im2,l1,l2,matchscores,show_below=True)
 show()
