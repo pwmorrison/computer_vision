@@ -196,9 +196,12 @@ class MyFrame(wx.Frame):
         self.DoSetupMenus(menubar)
         self.SetMenuBar(menubar)
         # Set the main panel
-        self.txt = wx.TextCtrl(self, style=wx.TE_MULTILINE)
+        # self.txt = wx.TextCtrl(self, style=wx.TE_MULTILINE)
 
-        if 1:
+        sty = wx.BORDER_SUNKEN
+        self.panel = ImagePanel(self, style=sty)
+
+        if 0:
             tb = self.CreateToolBar(TBFLAGS)
 
             # log.write("Default toolbar tool size: %s\n" % tb.GetToolBitmapSize())
