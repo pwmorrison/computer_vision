@@ -1,5 +1,6 @@
 import wx
 import images
+from image_match_panel import ImageMatchPanel
 
 class EasyMenu(wx.Menu):
     _map = { wx.ID_CUT : wx.ART_CUT,
@@ -18,15 +19,6 @@ class EasyMenu(wx.Menu):
         if bmp.IsOk():
             item.SetBitmap(bmp)
         return self.AppendItem(item)
-
-class ImagePanel(wx.Panel):
-    def __init__(self, parent, style):
-        super(ImagePanel, self).__init__(parent, style=style)
-        # Load the image data into a Bitmap
-        theBitmap = wx.Bitmap("images/house1_small_corner.jpg")
-        # Create a control that can display the
-        # bitmap on the screen.
-        self.bitmap = wx.StaticBitmap(self, bitmap=theBitmap)
 
 
 class MySplitter(wx.SplitterWindow):
@@ -199,9 +191,9 @@ class MyFrame(wx.Frame):
         # self.txt = wx.TextCtrl(self, style=wx.TE_MULTILINE)
 
         sty = wx.BORDER_SUNKEN
-        self.panel = ImagePanel(self, style=sty)
+        self.panel = ImageMatchPanel(self, style=sty)
 
-        if 0:
+        if 1:
             tb = self.CreateToolBar(TBFLAGS)
 
             # log.write("Default toolbar tool size: %s\n" % tb.GetToolBitmapSize())
