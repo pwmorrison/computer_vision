@@ -1,11 +1,12 @@
 import wx
+import wx.lib.scrolledpanel as scrolled
 from PIL import Image
 
 """
 Panel for displaying the matches between two images.
 """
 
-class ImageMatchPanel(wx.Panel):
+class ImageMatchPanel(scrolled.ScrolledPanel):#wx.Panel):
     def __init__(self, parent, style, image_path_1, image_path_2):
         super(ImageMatchPanel, self).__init__(parent, style=style)
 
@@ -14,6 +15,11 @@ class ImageMatchPanel(wx.Panel):
 
         self.merged_im = self.merge_images(self.im_1, self.im_2)
         self.merged_bitmap = self.static_bitmap_from_pil_image(self.merged_im)
+
+        box = wx.BoxSizer(wx.VERTICAL)
+        box.Add(self.merged_bitmap, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.SetSizer(box)
+        self.SetupScrolling()
 
     def merge_images(self, im_1, im_2):
 
