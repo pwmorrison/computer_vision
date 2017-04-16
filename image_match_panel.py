@@ -9,15 +9,24 @@ class ImageMatchPanel(wx.Panel):
     def __init__(self, parent, style, image_path_1, image_path_2):
         super(ImageMatchPanel, self).__init__(parent, style=style)
 
-        if 0:
-            # Load the image data into a Bitmap
-            theBitmap = wx.Bitmap(image_path_1)
+        self.im_1 = Image.open(image_path_1)
+        self.im_2 = Image.open(image_path_2)
 
-            # Create a control that can display the bitmap on the screen.
-            self.bitmap = wx.StaticBitmap(self, bitmap=theBitmap)
-        else:
-            pilImage = Image.open(image_path_1)
-            self.bitmap = self.static_bitmap_from_pil_image(pilImage)
+        self.merged_im = self.merge_images(self.im_1, self.im_2)
+        self.merged_bitmap = self.static_bitmap_from_pil_image(self.merged_im)
+
+    def merge_images(self, im_1, im_2):
+
+        total_width = im_1.width + im_2.width
+        total_height = max([im_1.height, im_2.height])
+
+        new_im = Image.new('RGB', (total_width, total_height))
+
+        new_im.paste(im_1, (0, 0))
+        new_im.paste(im_2, (im_1.width, 0))
+
+        return new_im
+
 
     def static_bitmap_from_pil_image(caller, pil_image):
         """

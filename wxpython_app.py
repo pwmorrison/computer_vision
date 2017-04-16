@@ -191,7 +191,9 @@ class MyFrame(wx.Frame):
         # self.txt = wx.TextCtrl(self, style=wx.TE_MULTILINE)
 
         sty = wx.BORDER_SUNKEN
-        self.panel = ImageMatchPanel(self, style=sty)
+        self.panel = ImageMatchPanel(self, style=sty,
+                                     image_path_1="images/house1_small_corner.jpg",
+                                     image_path_2="images/house1_small.jpg")
 
         if 1:
             tb = self.CreateToolBar(TBFLAGS)
