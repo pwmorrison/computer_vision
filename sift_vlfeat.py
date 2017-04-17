@@ -1,6 +1,6 @@
 from pylab import *
 from numpy import *
-from PIL import Image
+from PIL import Image, ImageDraw
 import cv2
 
 from PCV.localdescriptors import sift
@@ -24,16 +24,52 @@ def appendimages(im1, im2):
 
     return concatenate((im1, im2), axis=1)
 
-def plot_matches(im1, im2, pts1, pts2, show_below=True):
+def merge_images(im_1, im_2):
+
+    total_width = im_1.width + im_2.width
+    total_height = max([im_1.height, im_2.height])
+
+    new_im = Image.new('RGB', (total_width, total_height))
+
+    new_im.paste(im_1, (0, 0))
+    new_im.paste(im_2, (im_1.width, 0))
+
+    return new_im
+
+def plot_matches(im_path_1, im_path_2, pts1, pts2, show_below=True):
+    im1 = array(Image.open(im_path_1))
+    im2 = array(Image.open(im_path_2))
+
     im3 = appendimages(im1, im2)
     if show_below:
         im3 = vstack((im3, im3))
+
     # show image
     imshow(im3)
+
     # draw lines for matches
     cols1 = im1.shape[1]
     for i in range(len(pts1)):
         plot([pts1[i][0], pts2[i][0] + cols1], [pts1[i][1], pts2[i][1]], 'c')
+    axis('off')
+
+
+def plot_matches_pil(im_path_1, im_path_2, pts1, pts2, show_below=True):
+    """
+    Merge and draw matches with PIL. 
+    """
+    im_1 = Image.open(im_path_1)
+    im_2 = Image.open(im_path_2)
+
+    merged_im = merge_images(im_1, im_2)
+    draw = ImageDraw.Draw(merged_im)
+
+    # Draw lines for matches
+    for i in range(len(pts1)):
+        draw.line((pts1[i][0], pts1[i][1], pts2[i][0] + im_1.width, pts2[i][1]), fill='red', width=5)
+
+    imshow(merged_im)
+
     axis('off')
 
 def get_matches(locs1, locs2, matchscores):
@@ -117,9 +153,7 @@ def main():
                                                   pts2[i][0], pts2[i][1], matches_mask[i]))
 
     # load images and plot
-    im1 = array(Image.open(imname1))
-    im2 = array(Image.open(imname2))
-    plot_matches(im1, im2, pts1, pts2, show_below=False)
+    plot_matches_pil(imname1, imname2, pts1, pts2, show_below=False)
     show()
 
 if __name__ == "__main__":
