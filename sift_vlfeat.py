@@ -25,7 +25,7 @@ def appendimages(im1, im2):
 
     return concatenate((im1, im2), axis=1)
 
-def plot_matches(im1, im2, locs1, locs2, matchscores, show_below=True):
+def plot_matches(im1, im2, locs1, locs2, pts1, pts2, matchscores, show_below=True):
     """ Show a figure with lines joining the accepted matches
         input: im1,im2 (images as arrays), locs1,locs2 (location of features), 
         matchscores (as output from 'match'), show_below (if images should be shown below). """
@@ -39,12 +39,16 @@ def plot_matches(im1, im2, locs1, locs2, matchscores, show_below=True):
 
     # draw lines for matches
     cols1 = im1.shape[1]
-    for i, m in enumerate(matchscores):
-        if m > 0:
-            # Plot a line between the im1 position and the im2 position.
-            # Offset the im2.x position by the width of im1, since the images are displayed side-by-side.
-            # plot([x_coords], [y_coords])
-            plot([locs1[i][0], locs2[m][0] + cols1], [locs1[i][1], locs2[m][1]], 'c')
+    if 0:
+        for i, m in enumerate(matchscores):
+            if m > 0:
+                # Plot a line between the im1 position and the im2 position.
+                # Offset the im2.x position by the width of im1, since the images are displayed side-by-side.
+                # plot([x_coords], [y_coords])
+                plot([locs1[i][0], locs2[m][0] + cols1], [locs1[i][1], locs2[m][1]], 'c')
+    else:
+        for i in range(len(pts1)):
+            plot([pts1[i][0], pts2[i][0] + cols1], [pts1[i][1], pts2[i][1]], 'c')
     axis('off')
 
 def get_matches(locs1, locs2, matchscores):
@@ -53,7 +57,7 @@ def get_matches(locs1, locs2, matchscores):
     for i, m in enumerate(matchscores):
         if m > 0:
             pt1 = (locs1[i][0], locs1[i][1])
-            pt2 = (locs1[m][0], locs1[m][1])
+            pt2 = (locs2[m][0], locs2[m][1])
             print("%d:(%d, %d) -> %d:(%d, %d)" % (i, pt1[0], pt1[1], m, pt2[0], pt2[1]))
             pts1.append(pt1)
             pts2.append(pt2)
@@ -80,6 +84,36 @@ def apply_homography_to_pts(H, pts):
     transformed_pts = cv2.perspectiveTransform(src_pts, H)
     transformed_pts = transformed_pts.reshape(-1, 2)
     return transformed_pts
+
+def get_matching_pts_sift(im_path_1, im_path_2):
+    """
+    Gets the matching points in the two images, using SIFT features.
+    :param im_path_1: 
+    :param im_path_2: 
+    :return: 
+    """
+    # process and save features to file
+    params = "--edge-thresh 10 --peak-thresh 5 --verbose"
+    sift.process_image(im_path_1, im_path_1 + '.sift', params=params)
+    sift.process_image(im_path_2, im_path_2 + '.sift', params=params)
+
+    # read features and match
+    l1, d1 = sift.read_features_from_file(im_path_1 + '.sift')
+    l2, d2 = sift.read_features_from_file(im_path_2 + '.sift')
+    matchscores = sift.match_twosided(d1, d2)
+
+    # matchscores will have an entry for each feature in im1.
+    # The entry will be 0 if there is not a match.
+    # If there is a match, the entry will be the index of the matching feature in im2.
+    # matchscores[im1_feat_index] = im2_feat_index, if matchscores[im1_feat_index] != 0
+
+    # load images and plot
+    im1 = array(Image.open(im_path_1))
+    im2 = array(Image.open(im_path_2))
+
+    pts1, pts2 = get_matches(l1, l2, matchscores)
+
+    return pts1, pts2
 
 def main():
 
@@ -125,7 +159,7 @@ def main():
                                                   transformed_src_pts[i][0], transformed_src_pts[i][1],
                                                   pts2[i][0], pts2[i][1], matches_mask[i]))
 
-    plot_matches(im1,im2,l1,l2,matchscores,show_below=True)
+    plot_matches(im1, im2, l1, l2, pts1, pts2, matchscores, show_below=False)
     show()
 
 if __name__ == "__main__":
