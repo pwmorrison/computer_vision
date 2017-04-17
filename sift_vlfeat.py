@@ -6,13 +6,12 @@ import cv2
 from PCV.localdescriptors import sift
 
 """
-This is the twosided SIFT feature matching example from Section 2.2 (p 44).
+This is the two-sided SIFT feature matching example from Section 2.2 (p 44).
 """
 
 
 def appendimages(im1, im2):
     """ Return a new image that appends the two images side-by-side. """
-
     # select the image with the fewest rows and fill in enough empty rows
     rows1 = im1.shape[0]
     rows2 = im2.shape[0]
@@ -25,30 +24,16 @@ def appendimages(im1, im2):
 
     return concatenate((im1, im2), axis=1)
 
-def plot_matches(im1, im2, locs1, locs2, pts1, pts2, matchscores, show_below=True):
-    """ Show a figure with lines joining the accepted matches
-        input: im1,im2 (images as arrays), locs1,locs2 (location of features), 
-        matchscores (as output from 'match'), show_below (if images should be shown below). """
-
+def plot_matches(im1, im2, pts1, pts2, show_below=True):
     im3 = appendimages(im1, im2)
     if show_below:
         im3 = vstack((im3, im3))
-
     # show image
     imshow(im3)
-
     # draw lines for matches
     cols1 = im1.shape[1]
-    if 0:
-        for i, m in enumerate(matchscores):
-            if m > 0:
-                # Plot a line between the im1 position and the im2 position.
-                # Offset the im2.x position by the width of im1, since the images are displayed side-by-side.
-                # plot([x_coords], [y_coords])
-                plot([locs1[i][0], locs2[m][0] + cols1], [locs1[i][1], locs2[m][1]], 'c')
-    else:
-        for i in range(len(pts1)):
-            plot([pts1[i][0], pts2[i][0] + cols1], [pts1[i][1], pts2[i][1]], 'c')
+    for i in range(len(pts1)):
+        plot([pts1[i][0], pts2[i][0] + cols1], [pts1[i][1], pts2[i][1]], 'c')
     axis('off')
 
 def get_matches(locs1, locs2, matchscores):
@@ -72,9 +57,6 @@ def get_homography(pts1, pts2):
     H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
     matchesMask = mask.ravel().tolist()
 
-    # print(H)
-    # print(mask)
-
     return H, matchesMask
 
 def apply_homography_to_pts(H, pts):
@@ -88,28 +70,20 @@ def apply_homography_to_pts(H, pts):
 def get_matching_pts_sift(im_path_1, im_path_2):
     """
     Gets the matching points in the two images, using SIFT features.
-    :param im_path_1: 
-    :param im_path_2: 
-    :return: 
     """
-    # process and save features to file
+    # Process and save features to file
     params = "--edge-thresh 10 --peak-thresh 5 --verbose"
     sift.process_image(im_path_1, im_path_1 + '.sift', params=params)
     sift.process_image(im_path_2, im_path_2 + '.sift', params=params)
 
-    # read features and match
+    # Read features from the two images.
     l1, d1 = sift.read_features_from_file(im_path_1 + '.sift')
     l2, d2 = sift.read_features_from_file(im_path_2 + '.sift')
-    matchscores = sift.match_twosided(d1, d2)
 
     # matchscores will have an entry for each feature in im1.
     # The entry will be 0 if there is not a match.
     # If there is a match, the entry will be the index of the matching feature in im2.
-    # matchscores[im1_feat_index] = im2_feat_index, if matchscores[im1_feat_index] != 0
-
-    # load images and plot
-    im1 = array(Image.open(im_path_1))
-    im2 = array(Image.open(im_path_2))
+    matchscores = sift.match_twosided(d1, d2)
 
     pts1, pts2 = get_matches(l1, l2, matchscores)
 
@@ -128,27 +102,10 @@ def main():
     imname1 = '/home/paul/computer_vision/images/house1_small.jpg'
     imname2 = '/home/paul/computer_vision/images/house1_small_corner.jpg'
 
-    # process and save features to file
-    params="--edge-thresh 10 --peak-thresh 5 --verbose"
-    sift.process_image(imname1, imname1+'.sift', params=params)
-    sift.process_image(imname2, imname2+'.sift', params=params)
+    # Get matching points in the two images.
+    pts1, pts2 = get_matching_pts_sift(imname1, imname2)
 
-    # read features and match
-    l1,d1 = sift.read_features_from_file(imname1+'.sift')
-    l2,d2 = sift.read_features_from_file(imname2+'.sift')
-    matchscores = sift.match_twosided(d1, d2)
-
-    # matchscores will have an entry for each feature in im1.
-    # The entry will be 0 if there is not a match.
-    # If there is a match, the entry will be the index of the matching feature in im2.
-    # matchscores[im1_feat_index] = im2_feat_index, if matchscores[im1_feat_index] != 0
-
-    # load images and plot
-    im1 = array(Image.open(imname1))
-    im2 = array(Image.open(imname2))
-
-    pts1, pts2 = get_matches(l1, l2, matchscores)
-
+    # Determine a homography that maps from positions in the first image, to positions in the second image.
     H, matches_mask = get_homography(pts1, pts2)
 
     # Apply the homography, to see if we get similar points.
@@ -159,7 +116,10 @@ def main():
                                                   transformed_src_pts[i][0], transformed_src_pts[i][1],
                                                   pts2[i][0], pts2[i][1], matches_mask[i]))
 
-    plot_matches(im1, im2, l1, l2, pts1, pts2, matchscores, show_below=False)
+    # load images and plot
+    im1 = array(Image.open(imname1))
+    im2 = array(Image.open(imname2))
+    plot_matches(im1, im2, pts1, pts2, show_below=False)
     show()
 
 if __name__ == "__main__":
