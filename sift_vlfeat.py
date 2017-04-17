@@ -68,9 +68,7 @@ def plot_matches_pil(im_path_1, im_path_2, pts1, pts2, show_below=True):
     for i in range(len(pts1)):
         draw.line((pts1[i][0], pts1[i][1], pts2[i][0] + im_1.width, pts2[i][1]), fill='red', width=5)
 
-    imshow(merged_im)
-
-    axis('off')
+    return merged_im
 
 def get_matches(locs1, locs2, matchscores):
     pts1 = []
@@ -125,6 +123,29 @@ def get_matching_pts_sift(im_path_1, im_path_2):
 
     return pts1, pts2
 
+def match_and_plot_images(im_path_1, im_path_2):
+    """
+    Determines matching positions in the two images, and creates an image showing the matches. 
+    """
+    # Get matching points in the two images.
+    pts1, pts2 = get_matching_pts_sift(im_path_1, im_path_2)
+
+    # Determine a homography that maps from positions in the first image, to positions in the second image.
+    H, matches_mask = get_homography(pts1, pts2)
+
+    # Apply the homography, to see if we get similar points.
+    transformed_src_pts = apply_homography_to_pts(H, pts1)
+    print("(Im1 pt) -> (Transformed Im1 pt), [Im2 SIFT pt] - IsInlier")
+    for i in range(len(pts1)):
+        print("(%d, %d) -> (%d, %d), [%d, %d] - %d" % (pts1[i][0], pts1[i][1],
+                                                       transformed_src_pts[i][0], transformed_src_pts[i][1],
+                                                       pts2[i][0], pts2[i][1], matches_mask[i]))
+
+    # load images and plot
+    plot_im = plot_matches_pil(im_path_1, im_path_2, pts1, pts2, show_below=False)
+
+    return plot_im
+
 def main():
 
     # imname1 = 'C:/Users/Paul/programming-computer-vision-git/PCV/data/climbing_1_small.jpg'
@@ -138,22 +159,10 @@ def main():
     imname1 = '/home/paul/computer_vision/images/house1_small.jpg'
     imname2 = '/home/paul/computer_vision/images/house1_small_corner.jpg'
 
-    # Get matching points in the two images.
-    pts1, pts2 = get_matching_pts_sift(imname1, imname2)
+    plot_im = match_and_plot_images(imname1, imname2)
 
-    # Determine a homography that maps from positions in the first image, to positions in the second image.
-    H, matches_mask = get_homography(pts1, pts2)
-
-    # Apply the homography, to see if we get similar points.
-    transformed_src_pts = apply_homography_to_pts(H, pts1)
-    print("(Im1 pt) -> (Transformed Im1 pt), [Im2 SIFT pt] - IsInlier")
-    for i in range(len(pts1)):
-        print("(%d, %d) -> (%d, %d), [%d, %d] - %d" % (pts1[i][0], pts1[i][1],
-                                                  transformed_src_pts[i][0], transformed_src_pts[i][1],
-                                                  pts2[i][0], pts2[i][1], matches_mask[i]))
-
-    # load images and plot
-    plot_matches_pil(imname1, imname2, pts1, pts2, show_below=False)
+    imshow(plot_im)
+    axis('off')
     show()
 
 if __name__ == "__main__":
