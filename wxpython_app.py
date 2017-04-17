@@ -195,10 +195,13 @@ class MyFrame(wx.Frame):
                                      image_path_1="images/house1_small_corner.jpg",
                                      image_path_2="images/house1_small.jpg")
 
-        if 1:
+        display_toolbar = True
+        display_new_button = False
+        display_copy_paste = False
+        display_checkable = False
+        display_textbox = False
+        if display_toolbar:
             tb = self.CreateToolBar(TBFLAGS)
-
-            # log.write("Default toolbar tool size: %s\n" % tb.GetToolBitmapSize())
 
             self.CreateStatusBar()
 
@@ -211,44 +214,51 @@ class MyFrame(wx.Frame):
             tb.SetToolBitmapSize(tsize)
 
             # tb.AddSimpleTool(10, new_bmp, "New", "Long help for 'New'")
-            tb.AddLabelTool(10, "New", new_bmp, shortHelp="New", longHelp="Long help for 'New'")
-            self.Bind(wx.EVT_TOOL, self.OnToolClick, id=10)
-            self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=10)
+            if display_new_button:
+                tb.AddLabelTool(10, "New", new_bmp, shortHelp="New", longHelp="Long help for 'New'")
+                self.Bind(wx.EVT_TOOL, self.OnToolClick, id=10)
+                self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=10)
 
             # tb.AddSimpleTool(20, open_bmp, "Open", "Long help for 'Open'")
-            tb.AddLabelTool(20, "Open", open_bmp, shortHelp="Open", longHelp="Long help for 'Open'")
+            tb.AddLabelTool(20, "Open", open_bmp, shortHelp="Open left image", longHelp="Open left image")
             self.Bind(wx.EVT_TOOL, self.OnToolClick, id=20)
             self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=20)
 
-            tb.AddSeparator()
-            tb.AddSimpleTool(30, copy_bmp, "Copy", "Long help for 'Copy'")
-            self.Bind(wx.EVT_TOOL, self.OnToolClick, id=30)
-            self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=30)
+            tb.AddLabelTool(10, "Open", open_bmp, shortHelp="Open right image", longHelp="Open right image")
+            self.Bind(wx.EVT_TOOL, self.OnToolClick, id=21)
+            self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=21)
 
-            tb.AddSimpleTool(40, paste_bmp, "Paste", "Long help for 'Paste'")
-            self.Bind(wx.EVT_TOOL, self.OnToolClick, id=40)
-            self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=40)
+            if display_copy_paste:
+                tb.AddSeparator()
+                tb.AddSimpleTool(30, copy_bmp, "Copy", "Long help for 'Copy'")
+                self.Bind(wx.EVT_TOOL, self.OnToolClick, id=30)
+                self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=30)
 
-            tb.AddSeparator()
+                tb.AddSimpleTool(40, paste_bmp, "Paste", "Long help for 'Paste'")
+                self.Bind(wx.EVT_TOOL, self.OnToolClick, id=40)
+                self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=40)
 
-            # tool = tb.AddCheckTool(50, images.Tog1.GetBitmap(), shortHelp="Toggle this")
-            tool = tb.AddCheckLabelTool(50, "Checkable", images.Tog1.GetBitmap(),
-                                        shortHelp="Toggle this")
-            self.Bind(wx.EVT_TOOL, self.OnToolClick, id=50)
+            if display_checkable:
+                tb.AddSeparator()
+                # tool = tb.AddCheckTool(50, images.Tog1.GetBitmap(), shortHelp="Toggle this")
+                tool = tb.AddCheckLabelTool(50, "Checkable", images.Tog1.GetBitmap(),
+                                            shortHelp="Toggle this")
+                self.Bind(wx.EVT_TOOL, self.OnToolClick, id=50)
 
-            self.Bind(wx.EVT_TOOL_ENTER, self.OnToolEnter)
-            self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick)  # Match all
-            self.Bind(wx.EVT_TIMER, self.OnClearSB)
+            if display_textbox:
+                self.Bind(wx.EVT_TOOL_ENTER, self.OnToolEnter)
+                self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick)  # Match all
+                self.Bind(wx.EVT_TIMER, self.OnClearSB)
 
-            tb.AddSeparator()
-            cbID = wx.NewId()
+                tb.AddSeparator()
+                cbID = wx.NewId()
 
-            tb.AddControl(
-                wx.ComboBox(
-                    tb, cbID, "", choices=["", "This", "is a", "wx.ComboBox"],
-                    size=(150, -1), style=wx.CB_DROPDOWN
-                ))
-            self.Bind(wx.EVT_COMBOBOX, self.OnCombo, id=cbID)
+                tb.AddControl(
+                    wx.ComboBox(
+                        tb, cbID, "", choices=["", "This", "is a", "wx.ComboBox"],
+                        size=(150, -1), style=wx.CB_DROPDOWN
+                    ))
+                self.Bind(wx.EVT_COMBOBOX, self.OnCombo, id=cbID)
 
             tb.AddStretchableSpace()
             # search = TestSearchCtrl(tb, size=(150, -1), doSearch=self.DoSearch)
