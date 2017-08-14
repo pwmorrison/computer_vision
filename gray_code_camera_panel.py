@@ -68,7 +68,8 @@ class GrayCodeCameraPanel(wx.Panel):
     #     return frame
 
     def capture_frame_opencv(self):
-        ret, frame = self.capture.read()
+        for i in range(5):
+            ret, frame = self.capture.read()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         height, width = frame.shape[:2]
         print(width, height)
