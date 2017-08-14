@@ -203,9 +203,9 @@ def write_warp_map_to_images(
     csv_file.write(row_str)
 
     if warp_map_dict_horiz is not None:
-        im_horiz = Image.new("RGB", image_dim)
+        im_horiz = Image.new("RGB", image_dim, (255, 0, 0))
     if warp_map_dict_vert is not None:
-        im_vert = Image.new("RGB", image_dim)
+        im_vert = Image.new("RGB", image_dim, (255, 0, 0))
 
     for camera_position in camera_positions:
         # print(camera_position)
@@ -229,11 +229,19 @@ def write_warp_map_to_images(
                 val = float(projector_x) / proj_img_dim[0] * 255
                 im_horiz.putpixel((int(camera_position[0]), int(camera_position[1])), (0, int(val), 0))
 
+        if warp_map_dict_vert is not None:
+            if projector_y > proj_img_dim[1]:
+                # The decoded position being too large is an error.
+                im_vert.putpixel((int(camera_position[0]), int(camera_position[1])), (255, 0, 0))
+            else:
+                val = float(projector_y) / proj_img_dim[1] * 255
+                im_vert.putpixel((int(camera_position[0]), int(camera_position[1])), (0, int(val), 0))
+
     csv_file.close()
     # if warp_map_dict_horiz is not None:
     #     im_horiz.save("warp_map_horiz.png")
 
-    return im_horiz
+    return im_horiz, im_vert
 
 
 def generate_gray_code_images(is_horizontal, image_dim, image_file_prefix):
@@ -292,7 +300,7 @@ if __name__ == "__main__":
         if 0:
             # Images captured on laptop.
             frame_dir = r"gray_code/"
-            file_name = r"graycode*.png"
+            file_name_horiz = r"graycode*.png"
             width = 640
             height = 480
             proj_img_dim = (2560, 1440)
@@ -300,26 +308,36 @@ if __name__ == "__main__":
         elif 0:
             # Images captured on linux box.
             frame_dir = r"gray_code_2/"
-            file_name = r"graycode*.png"
+            file_name_horiz = r"graycode*.png"
             width = 640
             height = 480
             proj_img_dim = (1920, 1080)
             use_black_white = False
-        elif 1:
+        elif 0:
             # Windows, pos/neg, 500x500.
             frame_dir = r"gray_code_500x500/"
-            file_name = r"graycode*pos.png"
+            file_name_horiz = r"graycode*pos.png"
             width = 640
             height = 480
             proj_img_dim = (500, 500)
             use_black_white = True
+        elif 1:
+            # Windows, pos, 500x500, horiz and vert.
+            frame_dir = r"gray_code_500x500_horiz_vert/"
+            file_name_horiz = r"graycode*horiz.png"
+            file_name_vert = r"graycode*vert.png"
+            width = 640
+            height = 480
+            proj_img_dim = (500, 500)
+            use_black_white = True
+            generate_vertical = True
         warp_map_horiz = None
         warp_map_vert = None
         generate_horizontal = True
 
         if generate_horizontal:
             # Decode the bit planes, to generate a warp map.
-            images = glob(frame_dir + file_name)
+            images = glob(frame_dir + file_name_horiz)
             images.sort()
 
             # Plot the input gray code images.
@@ -338,13 +356,40 @@ if __name__ == "__main__":
 
             warp_map_horiz = decode_bit_plane_images(images, black_image, white_image, 80)
 
+        warp_map_vert = None
+        if generate_vertical:
+            # Decode the bit planes, to generate a warp map.
+            images = glob(frame_dir + file_name_vert)
+            images.sort()
+
+            # Plot the input gray code images.
+            fig, axes = plt.subplots(nrows=1, ncols=len(images), figsize=(20, 4))
+            for i, image in enumerate(images):
+                im = Image.open(image)
+                im_array = np.asarray(im)
+        #         plt.figure()
+                axes[i].imshow(np.asarray(im_array), cmap='gray')
+
+            black_image = None
+            white_image = None
+            if use_black_white:
+                black_image = frame_dir + "black.png"
+                white_image = frame_dir + "white.png"
+
+            warp_map_vert = decode_bit_plane_images(images, black_image, white_image, 80)
+
         # output_warp_map(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
 
-        im_horiz = write_warp_map_to_images(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
+        im_horiz, im_vert = write_warp_map_to_images(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
         print(im_horiz)
+        print(im_vert)
         im_horiz.save("warp_map_horiz.png")
+        im_vert.save("warp_map_vert.png")
 
         plt.figure()
         plt.imshow(np.asarray(im_horiz))
+
+        plt.figure()
+        plt.imshow(np.asarray(im_vert))
 
 plt.show()
