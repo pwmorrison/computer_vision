@@ -1,5 +1,25 @@
 import pygame
+import cv2
+from PIL import Image
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
+
+class Camera():
+    def __init__(self):
+        camera_number = 2
+        self.capture = cv2.VideoCapture(camera_number)
+
+    def capture_frame(self):
+        frame, width, height = self.capture_frame_opencv()
+        im = Image.frombytes("RGB", (640, 480), frame)
+        return im
+
+    def capture_frame_opencv(self):
+        for i in range(5):
+            ret, frame = self.capture.read()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        height, width = frame.shape[:2]
+        print(width, height)
+        return frame, width, height
 
 def process_gray_code():
     print("Processing gray code.")
@@ -117,8 +137,13 @@ class GrayCodeController():
 
         return True
 
+
 def main():
     pygame.init()
+
+    camera = Camera()
+    im = camera.capture_frame()
+    im.save("pygame_camera_im.png")
 
     display_width = 800
     display_height = 600
