@@ -63,6 +63,7 @@ class GrayCodeController():
     def reset(self):
         self.render = True
         self.state = "BLACK"
+        self.horizontal = True
         self.gray_code_state = GrayCodeState(
             (self.display_width, self.display_height))
 
@@ -89,12 +90,26 @@ class GrayCodeController():
         elif self.state == "GRAYCODE":
             if self.render:
                 print("Rendering gray code.")
-                self.gameDisplay.fill((128, 128, 128))
+                # self.gameDisplay.fill((128, 128, 128))
+                self.gameDisplay.fill((0, 0, 0))
+                bit_plane = self.gray_code_state.get_current_bit_plane()
+                for x, bit_val in enumerate(bit_plane):
+                    if bit_val == 1:
+                        if self.horizontal:
+                            pygame.draw.rect(self.gameDisplay, (255, 255, 255),
+                                             (x, 0, 1, self.display_height), 1)
+                            # dc.DrawRectangle(x, 0, 1, self.window_size[1])
+                        else:
+                            pygame.draw.rect(self.gameDisplay, (255, 255, 255),
+                                             (0, x, self.display_width, 1), 1)
+                            # dc.DrawRectangle(0, x, self.window_size[0], 1)
+
+                self.gray_code_state.progress_state()
                 self.render = False
             else:
                 print("Capturing gray code.")
                 self.render = True
-                if True:
+                if self.gray_code_state.is_sequence_finished():
                     print("Finished sequence.")
                     return False
         else:
