@@ -74,16 +74,18 @@ class GrayCodeState():
 GRAYCODEEVENT = pygame.USEREVENT + 1
 
 class GrayCodeController():
-    def __init__(self, display_width, display_height, gameDisplay):
+    def __init__(self, display_width, display_height, gameDisplay, camera):
         self.display_width = display_width
         self.display_height = display_height
         self.gameDisplay = gameDisplay
+        self.camera = camera
         self.reset()
 
     def reset(self):
         self.render = True
         self.state = "BLACK"
         self.horizontal = True
+        self.gray_code_num = 0
         self.gray_code_state = GrayCodeState(
             (self.display_width, self.display_height))
 
@@ -96,6 +98,8 @@ class GrayCodeController():
                 self.render = False
             else:
                 print("Capturing black.")
+                im = self.camera.capture_frame()
+                im.save("black.png")
                 self.state = "WHITE"
                 self.render = True
         elif self.state == "WHITE":
@@ -105,6 +109,8 @@ class GrayCodeController():
                 self.render = False
             else:
                 print("Capturing white.")
+                im = self.camera.capture_frame()
+                im.save("white.png")
                 self.state = "GRAYCODE"
                 self.render = True
         elif self.state == "GRAYCODE":
@@ -128,7 +134,11 @@ class GrayCodeController():
                 self.render = False
             else:
                 print("Capturing gray code.")
+                im = self.camera.capture_frame()
+                horiz_label = "horiz" if self.horizontal else "vert"
+                im.save("graycode_%02d_%s.png" % (self.gray_code_num, horiz_label))
                 self.render = True
+                self.gray_code_num += 1
                 if self.gray_code_state.is_sequence_finished():
                     print("Finished sequence.")
                     return False
@@ -163,7 +173,7 @@ def main():
     car_speed = 0
 
     gray_code_controller = GrayCodeController(
-        display_width, display_height, gameDisplay)
+        display_width, display_height, gameDisplay, camera)
 
     crashed = False
     gray_code = False
