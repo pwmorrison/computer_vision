@@ -54,9 +54,10 @@ class GrayCodeState():
 GRAYCODEEVENT = pygame.USEREVENT + 1
 
 class GrayCodeController():
-    def __init__(self, display_width, display_height):
+    def __init__(self, display_width, display_height, gameDisplay):
         self.display_width = display_width
         self.display_height = display_height
+        self.gameDisplay = gameDisplay
         self.reset()
 
     def reset(self):
@@ -70,6 +71,7 @@ class GrayCodeController():
         if self.state == "BLACK":
             if self.render:
                 print("Rendering black.")
+                self.gameDisplay.fill((0, 0, 0))
                 self.render = False
             else:
                 print("Capturing black.")
@@ -78,6 +80,7 @@ class GrayCodeController():
         elif self.state == "WHITE":
             if self.render:
                 print("Rendering white.")
+                self.gameDisplay.fill((255, 255, 255))
                 self.render = False
             else:
                 print("Capturing white.")
@@ -86,6 +89,7 @@ class GrayCodeController():
         elif self.state == "GRAYCODE":
             if self.render:
                 print("Rendering gray code.")
+                self.gameDisplay.fill((128, 128, 128))
                 self.render = False
             else:
                 print("Capturing gray code.")
@@ -118,7 +122,8 @@ def main():
     x_change = 0
     car_speed = 0
 
-    gray_code_controller = GrayCodeController(display_width, display_height)
+    gray_code_controller = GrayCodeController(
+        display_width, display_height, gameDisplay)
 
     crashed = False
     gray_code = False
@@ -155,8 +160,8 @@ def main():
             print(event)
         x += x_change
 
-        gameDisplay.fill(white)
-        car(x, y, gameDisplay, carImg)
+        # gameDisplay.fill(white)
+        # car(x, y, gameDisplay, carImg)
 
         pygame.display.update()
         clock.tick(60)
