@@ -53,6 +53,51 @@ class GrayCodeState():
 
 GRAYCODEEVENT = pygame.USEREVENT + 1
 
+class GrayCodeController():
+    def __init__(self, display_width, display_height):
+        self.display_width = display_width
+        self.display_height = display_height
+        self.reset()
+
+    def reset(self):
+        self.render = True
+        self.state = "BLACK"
+        self.gray_code_state = GrayCodeState(
+            (self.display_width, self.display_height))
+
+    def process(self):
+        """Called every timer tick."""
+        if self.state == "BLACK":
+            if self.render:
+                print("Rendering black.")
+                self.render = False
+            else:
+                print("Capturing black.")
+                self.state = "WHITE"
+                self.render = True
+        elif self.state == "WHITE":
+            if self.render:
+                print("Rendering white.")
+                self.render = False
+            else:
+                print("Capturing white.")
+                self.state = "GRAYCODE"
+                self.render = True
+        elif self.state == "GRAYCODE":
+            if self.render:
+                print("Rendering gray code.")
+                self.render = False
+            else:
+                print("Capturing gray code.")
+                self.render = True
+                if True:
+                    print("Finished sequence.")
+                    return False
+        else:
+            assert(False)
+
+        return True
+
 def main():
     pygame.init()
 
@@ -73,7 +118,7 @@ def main():
     x_change = 0
     car_speed = 0
 
-    gray_code_state = GrayCodeState((display_width, display_height))
+    gray_code_controller = GrayCodeController(display_width, display_height)
 
     crashed = False
     gray_code = False
@@ -98,10 +143,15 @@ def main():
                     else:
                         print("Stopping gray code.")
                         pygame.time.set_timer(GRAYCODEEVENT, 0)
+                        gray_code_controller.reset()
                         gray_code = False
             if event.type == GRAYCODEEVENT:
                 print("Rendering / capturing gray code frame.")
-                process_gray_code()
+                keep_processing = gray_code_controller.process()
+                if not keep_processing:
+                    pygame.time.set_timer(GRAYCODEEVENT, 0)
+                    gray_code_controller.reset()
+                    gray_code = False
             print(event)
         x += x_change
 
