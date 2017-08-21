@@ -1,7 +1,13 @@
 import pygame
 import cv2
 from PIL import Image
+import os
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
+
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+GRAY_CODE_DIR = "gray_code"
+GRAY_CODE_DELAY = 500
 
 class Camera():
     def __init__(self):
@@ -73,6 +79,14 @@ class GrayCodeState():
 
 GRAYCODEEVENT = pygame.USEREVENT + 1
 
+def render_home_screen(gameDisplay):
+
+    gameDisplay.fill(BLACK)
+
+    font = pygame.font.SysFont("monospace", 15)
+    label = font.render("G - Render/capture gray code patterns", 1, (255, 255, 0))
+    gameDisplay.blit(label, (100, 100))
+
 class GrayCodeController():
     def __init__(self, display_width, display_height, gameDisplay, camera):
         self.display_width = display_width
@@ -99,7 +113,7 @@ class GrayCodeController():
             else:
                 print("Capturing black.")
                 im = self.camera.capture_frame()
-                im.save("black.png")
+                im.save(os.path.join(GRAY_CODE_DIR, "black.png"))
                 self.state = "WHITE"
                 self.render = True
         elif self.state == "WHITE":
@@ -110,7 +124,7 @@ class GrayCodeController():
             else:
                 print("Capturing white.")
                 im = self.camera.capture_frame()
-                im.save("white.png")
+                im.save(os.path.join(GRAY_CODE_DIR, "white.png"))
                 self.state = "GRAYCODE"
                 self.render = True
         elif self.state == "GRAYCODE":
@@ -124,24 +138,28 @@ class GrayCodeController():
                         if self.horizontal:
                             pygame.draw.rect(self.gameDisplay, (255, 255, 255),
                                              (x, 0, 1, self.display_height), 1)
-                            # dc.DrawRectangle(x, 0, 1, self.window_size[1])
                         else:
                             pygame.draw.rect(self.gameDisplay, (255, 255, 255),
                                              (0, x, self.display_width, 1), 1)
-                            # dc.DrawRectangle(0, x, self.window_size[0], 1)
-
                 self.gray_code_state.progress_state()
                 self.render = False
             else:
                 print("Capturing gray code.")
                 im = self.camera.capture_frame()
                 horiz_label = "horiz" if self.horizontal else "vert"
-                im.save("graycode_%02d_%s.png" % (self.gray_code_num, horiz_label))
+                im.save(os.path.join(GRAY_CODE_DIR,
+                                     "graycode_%02d_%s.png" % (self.gray_code_num, horiz_label)))
                 self.render = True
                 self.gray_code_num += 1
                 if self.gray_code_state.is_sequence_finished():
-                    print("Finished sequence.")
-                    return False
+                    if self.horizontal:
+                        print("Finished horizontal sequence.")
+                        self.horizontal = False
+                        self.gray_code_state = GrayCodeState(
+                            (self.display_width, self.display_height))
+                    else:
+                        print("Finished vertical sequence.")
+                        return False
         else:
             assert(False)
 
@@ -152,25 +170,22 @@ def main():
     pygame.init()
 
     camera = Camera()
-    im = camera.capture_frame()
-    im.save("pygame_camera_im.png")
+    # im = camera.capture_frame()
+    # im.save("pygame_camera_im.png")
 
     display_width = 800
     display_height = 600
 
     gameDisplay = pygame.display.set_mode((display_width, display_height))
-    pygame.display.set_caption('A bit Racey')
+    pygame.display.set_caption('Projection mapping')
 
     clock = pygame.time.Clock()
 
-    black = (0, 0, 0)
-    white = (255, 255, 255)
-
-    carImg = pygame.image.load('racecar.png')
-    x = (display_width * 0.45)
-    y = (display_height * 0.8)
-    x_change = 0
-    car_speed = 0
+    # carImg = pygame.image.load('racecar.png')
+    # x = (display_width * 0.45)
+    # y = (display_height * 0.8)
+    # x_change = 0
+    # car_speed = 0
 
     gray_code_controller = GrayCodeController(
         display_width, display_height, gameDisplay, camera)
@@ -182,18 +197,11 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 crashed = True
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    x_change = -5
-                elif event.key == pygame.K_RIGHT:
-                    x_change = 5
             if event.type == pygame.KEYUP:
-                if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-                    x_change = 0
                 if event.key == pygame.K_g:
                     if gray_code == False:
                         print("Starting gray code.")
-                        pygame.time.set_timer(GRAYCODEEVENT, 1000)
+                        pygame.time.set_timer(GRAYCODEEVENT, GRAY_CODE_DELAY)
                         gray_code = True
                     else:
                         print("Stopping gray code.")
@@ -208,10 +216,9 @@ def main():
                     gray_code_controller.reset()
                     gray_code = False
             print(event)
-        x += x_change
 
-        # gameDisplay.fill(white)
-        # car(x, y, gameDisplay, carImg)
+        if not gray_code:
+            render_home_screen(gameDisplay)
 
         pygame.display.update()
         clock.tick(60)
