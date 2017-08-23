@@ -152,15 +152,27 @@ def decode_bit_plane_images(bit_plane_images, black_image, white_image, threshol
     print('')
     for y in range(height):
         for x in range(width):
+
+            decode_threshold = threshold
             if black_image is not None:
-                if black_im_data[y, x] > threshold or white_im_data[y, x] < threshold:
+                black_pixel = black_im_data[y, x]
+                white_pixel = white_im_data[y, x]
+
+                if (white_pixel - black_pixel) < 10:
                     continue
+
+                # PAUL: This threshold didn't seem to work as well as the above diff.
+                # if black_pixel > threshold or white_pixel < threshold:
+                #     warp_map_dict[(x, y)] = 750
+                #     continue
+
+                decode_threshold = (black_pixel + white_pixel) / 2
 
             # Decode this position.
             bits = []
             for d in range(depth):
                 bit = all_data[d, y, x]
-                if bit >= threshold:
+                if bit >= decode_threshold:
                     bit = 1
                 else:
                     bit = 0
@@ -193,7 +205,13 @@ def write_warp_map_to_images(
     vert_cam_positions = []
     if warp_map_dict_vert is not None:
         vert_cam_positions = list(warp_map_dict_vert.keys())
-    camera_positions = list(set(horiz_cam_positions + vert_cam_positions))
+    # camera_positions = list(set(horiz_cam_positions + vert_cam_positions))
+    if warp_map_dict_horiz is not None and warp_map_dict_vert is not None:
+        camera_positions = list(set(horiz_cam_positions) & set(vert_cam_positions))
+    elif warp_map_dict_horiz is not None:
+        camera_positions = horiz_cam_positions
+    elif warp_map_dict_vert is not None:
+        camera_positions = vert_cam_positions
     camera_positions.sort()
 
     filename = "warp_map.csv"
@@ -202,10 +220,12 @@ def write_warp_map_to_images(
     row_str = "cam_x, cam_y, proj_x, proj_y\n"
     csv_file.write(row_str)
 
+    im_horiz = None
+    im_vert = None
     if warp_map_dict_horiz is not None:
-        im_horiz = Image.new("RGB", image_dim, (255, 0, 0))
+        im_horiz = Image.new("RGB", image_dim, (0, 0, 255))
     if warp_map_dict_vert is not None:
-        im_vert = Image.new("RGB", image_dim, (255, 0, 0))
+        im_vert = Image.new("RGB", image_dim, (0, 0, 255))
 
     for camera_position in camera_positions:
         # print(camera_position)
@@ -319,16 +339,19 @@ if __name__ == "__main__":
             file_name_horiz = r"graycode*pos.png"
             width = 640
             height = 480
-            proj_img_dim = (500, 500)
+            # proj_img_dim = (500, 500)
+            proj_img_dim = (800, 600)
             use_black_white = True
         elif 1:
             # Windows, pos, 500x500, horiz and vert.
-            frame_dir = r"gray_code_500x500_horiz_vert/"
+            # frame_dir = r"gray_code_500x500_horiz_vert/"
+            frame_dir = r"gray_code_projector_500x500/"
+            # frame_dir = r"gray_code_screen_500x500/"
             file_name_horiz = r"graycode*horiz.png"
             file_name_vert = r"graycode*vert.png"
             width = 640
             height = 480
-            proj_img_dim = (500, 500)
+            proj_img_dim = (800, 600)
             use_black_white = True
             generate_vertical = True
         warp_map_horiz = None
@@ -354,7 +377,7 @@ if __name__ == "__main__":
                 black_image = frame_dir + "black.png"
                 white_image = frame_dir + "white.png"
 
-            warp_map_horiz = decode_bit_plane_images(images, black_image, white_image, 80)
+            warp_map_horiz = decode_bit_plane_images(images, black_image, white_image, 90)
 
         warp_map_vert = None
         if generate_vertical:
@@ -376,20 +399,20 @@ if __name__ == "__main__":
                 black_image = frame_dir + "black.png"
                 white_image = frame_dir + "white.png"
 
-            warp_map_vert = decode_bit_plane_images(images, black_image, white_image, 80)
+            warp_map_vert = decode_bit_plane_images(images, black_image, white_image, 90)
 
         # output_warp_map(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
 
         im_horiz, im_vert = write_warp_map_to_images(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
         print(im_horiz)
         print(im_vert)
-        im_horiz.save("warp_map_horiz.png")
-        im_vert.save("warp_map_vert.png")
-
-        plt.figure()
-        plt.imshow(np.asarray(im_horiz))
-
-        plt.figure()
-        plt.imshow(np.asarray(im_vert))
+        if im_horiz is not None:
+            im_horiz.save("warp_map_horiz.png")
+            plt.figure()
+            plt.imshow(np.asarray(im_horiz))
+        if im_vert is not None:
+            im_vert.save("warp_map_vert.png")
+            plt.figure()
+            plt.imshow(np.asarray(im_vert))
 
 plt.show()
