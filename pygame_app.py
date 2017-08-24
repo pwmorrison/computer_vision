@@ -2,21 +2,29 @@ import pygame
 import cv2
 from PIL import Image
 import os
-from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
+import numpy as np
+from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes, generate_warp_map
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-GRAY_CODE_DIR = "gray_code"
+GRAY_CODE_DIR = "gray_code_projector_500x500"
 GRAY_CODE_DELAY = 500
+GRAY_CODE_FILENAME_HORIZ = r"graycode*horiz.png"
+GRAY_CODE_FILENAME_VERT = r"graycode*vert.png"
+PROJ_DIM = (800, 600)
+CAM_DIM = (640, 480)
 
 class Camera():
-    def __init__(self):
+    def __init__(self, grayscale=True):
         camera_number = 2
         self.capture = cv2.VideoCapture(camera_number)
+        self.grayscale = grayscale
 
     def capture_frame(self):
         frame, width, height = self.capture_frame_opencv()
         im = Image.frombytes("RGB", (640, 480), frame)
+        if self.grayscale:
+            im = im.convert('L')
         return im
 
     def capture_frame_opencv(self):
@@ -86,6 +94,24 @@ def render_home_screen(gameDisplay):
     font = pygame.font.SysFont("monospace", 15)
     label = font.render("G - Render/capture gray code patterns", 1, (255, 255, 0))
     gameDisplay.blit(label, (100, 100))
+    label = font.render("W - Generate warp map from gray code", 1, (255, 255, 0))
+    gameDisplay.blit(label, (100, 120))
+
+
+def create_warp_map_from_dir():
+    warp_map_horiz, warp_map_vert, im_horiz, im_vert = generate_warp_map(
+        GRAY_CODE_DIR, GRAY_CODE_FILENAME_HORIZ, GRAY_CODE_FILENAME_VERT, CAM_DIM,
+        PROJ_DIM)
+
+    if im_horiz is not None:
+        im_horiz.save(os.path.join(GRAY_CODE_DIR, "warp_map_horiz.png"))
+        # plt.figure()
+        # plt.imshow(np.asarray(im_horiz))
+    if im_vert is not None:
+        im_vert.save(os.path.join(GRAY_CODE_DIR, "warp_map_vert.png"))
+        # plt.figure()
+        # plt.imshow(np.asarray(im_vert))
+
 
 class GrayCodeController():
     def __init__(self, display_width, display_height, gameDisplay, camera):
@@ -173,10 +199,7 @@ def main():
     # im = camera.capture_frame()
     # im.save("pygame_camera_im.png")
 
-    display_width = 800
-    display_height = 600
-
-    gameDisplay = pygame.display.set_mode((display_width, display_height))
+    gameDisplay = pygame.display.set_mode(PROJ_DIM)
     pygame.display.set_caption('Projection mapping')
 
     clock = pygame.time.Clock()
@@ -188,7 +211,7 @@ def main():
     # car_speed = 0
 
     gray_code_controller = GrayCodeController(
-        display_width, display_height, gameDisplay, camera)
+        PROJ_DIM[0], PROJ_DIM[1], gameDisplay, camera)
 
     crashed = False
     gray_code = False
@@ -208,6 +231,9 @@ def main():
                         pygame.time.set_timer(GRAYCODEEVENT, 0)
                         gray_code_controller.reset()
                         gray_code = False
+                elif event.key == pygame.K_w:
+                    print("Generating warp map from gray code.")
+                    create_warp_map_from_dir()
             if event.type == GRAYCODEEVENT:
                 print("Rendering / capturing gray code frame.")
                 keep_processing = gray_code_controller.process()

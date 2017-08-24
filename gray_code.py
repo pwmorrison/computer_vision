@@ -1,6 +1,7 @@
 import numpy as np
 from PIL import Image
 from glob import glob
+import os
 import matplotlib.pyplot as plt
 
 
@@ -192,7 +193,7 @@ def decode_bit_plane_images(bit_plane_images, black_image, white_image, threshol
     return warp_map_dict
 
 
-def write_warp_map_to_images(
+def write_warp_map_to_images(output_dir,
         warp_map_dict_horiz, warp_map_dict_vert, image_dim, proj_img_dim):
     """
     Output the warp map to a csv file and an image (for debugging).
@@ -216,7 +217,7 @@ def write_warp_map_to_images(
 
     filename = "warp_map.csv"
     print("Outputting file to %s" % (filename))
-    csv_file = open(filename, "w")
+    csv_file = open(os.path.join(output_dir, filename), "w")
     row_str = "cam_x, cam_y, proj_x, proj_y\n"
     csv_file.write(row_str)
 
@@ -288,8 +289,66 @@ def generate_gray_code_images(is_horizontal, image_dim, image_file_prefix):
         bit_plane_images.append(image_name)
 
 
-if __name__ == "__main__":
+def generate_warp_map(frame_dir, file_name_horiz, file_name_vert, cam_img_dim,
+                      proj_img_dim, generate_horizontal=True, generate_vertical=True,
+                      use_black_white=True):
+    if generate_horizontal:
+        # Decode the bit planes, to generate a warp map.
+        images = glob(os.path.join(frame_dir, file_name_horiz))
+        images.sort()
+        print(images)
 
+        if 0:
+            # Plot the input gray code images.
+            fig, axes = plt.subplots(nrows=1, ncols=len(images), figsize=(20, 4))
+            for i, image in enumerate(images):
+                im = Image.open(image)
+                im_array = np.asarray(im)
+                #         plt.figure()
+                axes[i].imshow(np.asarray(im_array), cmap='gray')
+
+        black_image = None
+        white_image = None
+        if use_black_white:
+            black_image = os.path.join(frame_dir, "black.png")
+            white_image = os.path.join(frame_dir, "white.png")
+
+        warp_map_horiz = decode_bit_plane_images(images, black_image,
+                                                 white_image, 90)
+
+    warp_map_vert = None
+    if generate_vertical:
+        # Decode the bit planes, to generate a warp map.
+        images = glob(os.path.join(frame_dir, file_name_vert))
+        images.sort()
+
+        if 0:
+            # Plot the input gray code images.
+            fig, axes = plt.subplots(nrows=1, ncols=len(images), figsize=(20, 4))
+            for i, image in enumerate(images):
+                im = Image.open(image)
+                im_array = np.asarray(im)
+                #         plt.figure()
+                axes[i].imshow(np.asarray(im_array), cmap='gray')
+
+        black_image = None
+        white_image = None
+        if use_black_white:
+            black_image = os.path.join(frame_dir, "black.png")
+            white_image = os.path.join(frame_dir, "white.png")
+
+        warp_map_vert = decode_bit_plane_images(images, black_image,
+                                                white_image, 90)
+
+    # output_warp_map(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
+
+    im_horiz, im_vert = write_warp_map_to_images(
+        frame_dir, warp_map_horiz, warp_map_vert, cam_img_dim, proj_img_dim)
+
+    return warp_map_horiz, warp_map_vert, im_horiz, im_vert
+
+
+def main():
     if 0:
         # Test code for generating gray code frames and decoding them.
         frame_dir = r"bit_planes/"
@@ -345,12 +404,11 @@ if __name__ == "__main__":
         elif 1:
             # Windows, pos, 500x500, horiz and vert.
             # frame_dir = r"gray_code_500x500_horiz_vert/"
-            frame_dir = r"gray_code_projector_500x500/"
-            # frame_dir = r"gray_code_screen_500x500/"
+            frame_dir = r"gray_code_projector_500x500"
+            # frame_dir = r"gray_code_screen_500x500"
             file_name_horiz = r"graycode*horiz.png"
             file_name_vert = r"graycode*vert.png"
-            width = 640
-            height = 480
+            cam_img_dim = (640, 480)
             proj_img_dim = (800, 600)
             use_black_white = True
             generate_vertical = True
@@ -358,52 +416,9 @@ if __name__ == "__main__":
         warp_map_vert = None
         generate_horizontal = True
 
-        if generate_horizontal:
-            # Decode the bit planes, to generate a warp map.
-            images = glob(frame_dir + file_name_horiz)
-            images.sort()
+        warp_map_horiz, warp_map_vert, im_horiz, im_vert = generate_warp_map(
+            frame_dir, file_name_horiz, file_name_vert, cam_img_dim, proj_img_dim)
 
-            # Plot the input gray code images.
-            fig, axes = plt.subplots(nrows=1, ncols=len(images), figsize=(20, 4))
-            for i, image in enumerate(images):
-                im = Image.open(image)
-                im_array = np.asarray(im)
-        #         plt.figure()
-                axes[i].imshow(np.asarray(im_array), cmap='gray')
-
-            black_image = None
-            white_image = None
-            if use_black_white:
-                black_image = frame_dir + "black.png"
-                white_image = frame_dir + "white.png"
-
-            warp_map_horiz = decode_bit_plane_images(images, black_image, white_image, 90)
-
-        warp_map_vert = None
-        if generate_vertical:
-            # Decode the bit planes, to generate a warp map.
-            images = glob(frame_dir + file_name_vert)
-            images.sort()
-
-            # Plot the input gray code images.
-            fig, axes = plt.subplots(nrows=1, ncols=len(images), figsize=(20, 4))
-            for i, image in enumerate(images):
-                im = Image.open(image)
-                im_array = np.asarray(im)
-        #         plt.figure()
-                axes[i].imshow(np.asarray(im_array), cmap='gray')
-
-            black_image = None
-            white_image = None
-            if use_black_white:
-                black_image = frame_dir + "black.png"
-                white_image = frame_dir + "white.png"
-
-            warp_map_vert = decode_bit_plane_images(images, black_image, white_image, 90)
-
-        # output_warp_map(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
-
-        im_horiz, im_vert = write_warp_map_to_images(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
         print(im_horiz)
         print(im_vert)
         if im_horiz is not None:
@@ -415,4 +430,7 @@ if __name__ == "__main__":
             plt.figure()
             plt.imshow(np.asarray(im_vert))
 
-plt.show()
+    plt.show()
+
+if __name__ == "__main__":
+    main()
