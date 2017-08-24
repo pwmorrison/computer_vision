@@ -96,7 +96,24 @@ def render_home_screen(gameDisplay):
     gameDisplay.blit(label, (100, 100))
     label = font.render("W - Generate warp map from gray code", 1, (255, 255, 0))
     gameDisplay.blit(label, (100, 120))
+    label = font.render("E - Render edges", 1, (255, 255, 0))
+    gameDisplay.blit(label, (100, 140))
 
+
+def render_edges(gameDisplay, warp_map_im_horiz, warp_map_im_vert):
+    if 1:
+        img_data = np.array(warp_map_im_horiz)
+        # Find the edge pixels. This returns a [height, width] array.
+        edges = cv2.Canny(img_data, 100, 200, 13)
+        im = Image.fromarray(edges, "L").convert("RGB")
+    else:
+        im = warp_map_im_horiz
+
+    mode = im.mode
+    size = im.size
+    data = im.tobytes()
+    im_surface = pygame.image.fromstring(data, size, mode)
+    gameDisplay.blit(im_surface, (0, 0))
 
 def create_warp_map_from_dir():
     warp_map_horiz, warp_map_vert, im_horiz, im_vert = generate_warp_map(
@@ -111,6 +128,8 @@ def create_warp_map_from_dir():
         im_vert.save(os.path.join(GRAY_CODE_DIR, "warp_map_vert.png"))
         # plt.figure()
         # plt.imshow(np.asarray(im_vert))
+
+    return warp_map_horiz, warp_map_vert, im_horiz, im_vert
 
 
 class GrayCodeController():
@@ -192,62 +211,74 @@ class GrayCodeController():
         return True
 
 
-def main():
-    pygame.init()
+class App():
+    def __init__(self):
+        self.warp_map_horiz = None
+        self.warp_map_vert = None
 
-    camera = Camera()
-    # im = camera.capture_frame()
-    # im.save("pygame_camera_im.png")
+    def main(self):
+        pygame.init()
 
-    gameDisplay = pygame.display.set_mode(PROJ_DIM)
-    pygame.display.set_caption('Projection mapping')
+        camera = Camera()
+        # im = camera.capture_frame()
+        # im.save("pygame_camera_im.png")
 
-    clock = pygame.time.Clock()
+        gameDisplay = pygame.display.set_mode(PROJ_DIM)
+        pygame.display.set_caption('Projection mapping')
 
-    # carImg = pygame.image.load('racecar.png')
-    # x = (display_width * 0.45)
-    # y = (display_height * 0.8)
-    # x_change = 0
-    # car_speed = 0
+        clock = pygame.time.Clock()
 
-    gray_code_controller = GrayCodeController(
-        PROJ_DIM[0], PROJ_DIM[1], gameDisplay, camera)
+        # carImg = pygame.image.load('racecar.png')
+        # x = (display_width * 0.45)
+        # y = (display_height * 0.8)
+        # x_change = 0
+        # car_speed = 0
 
-    crashed = False
-    gray_code = False
-    while not crashed:
+        gray_code_controller = GrayCodeController(
+            PROJ_DIM[0], PROJ_DIM[1], gameDisplay, camera)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                crashed = True
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_g:
-                    if gray_code == False:
-                        print("Starting gray code.")
-                        pygame.time.set_timer(GRAYCODEEVENT, GRAY_CODE_DELAY)
-                        gray_code = True
-                    else:
-                        print("Stopping gray code.")
+        crashed = False
+        gray_code = False
+        edges = False
+        while not crashed:
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    crashed = True
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_g:
+                        if gray_code == False:
+                            print("Starting gray code.")
+                            pygame.time.set_timer(GRAYCODEEVENT, GRAY_CODE_DELAY)
+                            gray_code = True
+                        else:
+                            print("Stopping gray code.")
+                            pygame.time.set_timer(GRAYCODEEVENT, 0)
+                            gray_code_controller.reset()
+                            gray_code = False
+                    elif event.key == pygame.K_w:
+                        print("Generating warp map from gray code.")
+                        self.warp_map_horiz, self.warp_map_vert, self.im_horiz, \
+                            self.im_vert = create_warp_map_from_dir()
+                    elif event.key == pygame.K_e:
+                        print("Rendering edges.")
+                        render_edges(gameDisplay, self.im_horiz, self.im_vert)
+                        edges = True
+                if event.type == GRAYCODEEVENT:
+                    print("Rendering / capturing gray code frame.")
+                    keep_processing = gray_code_controller.process()
+                    if not keep_processing:
                         pygame.time.set_timer(GRAYCODEEVENT, 0)
                         gray_code_controller.reset()
                         gray_code = False
-                elif event.key == pygame.K_w:
-                    print("Generating warp map from gray code.")
-                    create_warp_map_from_dir()
-            if event.type == GRAYCODEEVENT:
-                print("Rendering / capturing gray code frame.")
-                keep_processing = gray_code_controller.process()
-                if not keep_processing:
-                    pygame.time.set_timer(GRAYCODEEVENT, 0)
-                    gray_code_controller.reset()
-                    gray_code = False
-            print(event)
+                print(event)
 
-        if not gray_code:
-            render_home_screen(gameDisplay)
+            if not gray_code and not edges:
+                render_home_screen(gameDisplay)
 
-        pygame.display.update()
-        clock.tick(60)
+            pygame.display.update()
+            clock.tick(60)
 
 if __name__ == '__main__':
-    main()
+    app = App()
+    app.main()
