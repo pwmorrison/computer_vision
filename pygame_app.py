@@ -261,9 +261,13 @@ class App():
                         self.warp_map_horiz, self.warp_map_vert, self.im_horiz, \
                             self.im_vert = create_warp_map_from_dir()
                     elif event.key == pygame.K_e:
-                        print("Rendering edges.")
-                        render_edges(gameDisplay, self.im_horiz, self.im_vert)
-                        edges = True
+                        if edges == False:
+                            print("Rendering edges.")
+                            render_edges(gameDisplay, self.im_horiz, self.im_vert)
+                            edges = True
+                        else:
+                            print("Stopping rendering edges.")
+                            edges = False
                 if event.type == GRAYCODEEVENT:
                     print("Rendering / capturing gray code frame.")
                     keep_processing = gray_code_controller.process()
