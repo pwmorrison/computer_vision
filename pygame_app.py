@@ -3,7 +3,8 @@ import cv2
 from PIL import Image
 import os
 import numpy as np
-from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes, generate_warp_map
+from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes, \
+    generate_warp_map, combine_warp_maps
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -100,20 +101,64 @@ def render_home_screen(gameDisplay):
     gameDisplay.blit(label, (100, 140))
 
 
-def render_edges(gameDisplay, warp_map_im_horiz, warp_map_im_vert):
+def render_edges(gameDisplay, warp_map_im_horiz, warp_map_im_vert,
+                 proj_cam_warp_map, cam_proj_warp_map):
     if 1:
         img_data = np.array(warp_map_im_horiz)
         # Find the edge pixels. This returns a [height, width] array.
+        # Note that the returned edge pixels may lie just outside the projection.
         edges = cv2.Canny(img_data, 100, 200, 13)
         im = Image.fromarray(edges, "L").convert("RGB")
     else:
         im = warp_map_im_horiz
 
-    mode = im.mode
-    size = im.size
-    data = im.tobytes()
-    im_surface = pygame.image.fromstring(data, size, mode)
-    gameDisplay.blit(im_surface, (0, 0))
+    if 0:
+        # Simply display the camera image.
+        mode = im.mode
+        size = im.size
+        data = im.tobytes()
+        im_surface = pygame.image.fromstring(data, size, mode)
+        gameDisplay.blit(im_surface, (0, 0))
+    elif 1:
+        # Render one of the images, but from the PoV of the projector.
+        gameDisplay.fill(BLACK)
+        for y in range(PROJ_DIM[1]):
+            for x in range(PROJ_DIM[0]):
+                proj_pos = (x, y)
+                if proj_pos not in proj_cam_warp_map.keys():
+                    continue
+                cam_pos = proj_cam_warp_map[proj_pos]
+                im_pixel = im.getpixel(cam_pos)
+                pygame.draw.circle(gameDisplay, im_pixel, proj_pos, 1, 0)
+    elif 0:
+        # Render the projector pixels that correspond to edges.
+        gameDisplay.fill(BLACK)
+        for y in range(PROJ_DIM[1]):
+            for x in range(PROJ_DIM[0]):
+                proj_pos = (x, y)
+                if proj_pos not in proj_cam_warp_map.keys():
+                    continue
+                cam_pos = proj_cam_warp_map[proj_pos]
+                edge_pixel = im.getpixel(cam_pos)
+                if edge_pixel == (255, 255, 255):
+                    pygame.draw.circle(gameDisplay, (255, 0, 0), proj_pos,
+                                       10, 0)
+    elif 1:
+        # Render the projector pixels that correspond to edges, but map the
+        # other way, from edge pixels to projector pixels.
+        # I think the two methods have the exact same result.
+        gameDisplay.fill(BLACK)
+        for y in range(CAM_DIM[1]):
+            for x in range(CAM_DIM[0]):
+                cam_pos = (x, y)
+                edge_pixel = im.getpixel(cam_pos)
+                if edge_pixel != (255, 255, 255):
+                    continue
+                if cam_pos not in cam_proj_warp_map.keys():
+                    continue
+                proj_pos = cam_proj_warp_map[cam_pos]
+                pygame.draw.circle(gameDisplay, (255, 0, 0), proj_pos, 10, 0)
+
 
 def create_warp_map_from_dir():
     warp_map_horiz, warp_map_vert, im_horiz, im_vert = generate_warp_map(
@@ -260,10 +305,14 @@ class App():
                         print("Generating warp map from gray code.")
                         self.warp_map_horiz, self.warp_map_vert, self.im_horiz, \
                             self.im_vert = create_warp_map_from_dir()
+                        self.cam_proj_warp_map, self.proj_cam_warp_map = \
+                            combine_warp_maps(self.warp_map_horiz, self.warp_map_vert)
                     elif event.key == pygame.K_e:
                         if edges == False:
                             print("Rendering edges.")
-                            render_edges(gameDisplay, self.im_horiz, self.im_vert)
+                            render_edges(gameDisplay, self.im_horiz, self.im_vert,
+                                         self.proj_cam_warp_map,
+                                         self.cam_proj_warp_map)
                             edges = True
                         else:
                             print("Stopping rendering edges.")

@@ -289,6 +289,25 @@ def generate_gray_code_images(is_horizontal, image_dim, image_file_prefix):
         bit_plane_images.append(image_name)
 
 
+def combine_warp_maps(warp_map_horiz, warp_map_vert):
+    """
+    Creates a warp map from projector pixel to camera pixel, and a warp map from
+    camera to projector pixel, given the horizontal and vertical camera-projector
+    warp maps.
+    """
+    cam_proj_warp_map = {}
+    proj_cam_warp_map = {}
+
+    cam_positions = list(warp_map_horiz.keys())
+    cam_positions.sort()
+    for cam_position in cam_positions:
+        proj_position = (warp_map_horiz[cam_position], warp_map_vert[cam_position])
+        cam_proj_warp_map[cam_position] = proj_position
+        proj_cam_warp_map[proj_position] = cam_position
+
+    return cam_proj_warp_map, proj_cam_warp_map
+
+
 def generate_warp_map(frame_dir, file_name_horiz, file_name_vert, cam_img_dim,
                       proj_img_dim, generate_horizontal=True, generate_vertical=True,
                       use_black_white=True):
@@ -418,6 +437,9 @@ def main():
 
         warp_map_horiz, warp_map_vert, im_horiz, im_vert = generate_warp_map(
             frame_dir, file_name_horiz, file_name_vert, cam_img_dim, proj_img_dim)
+
+        cam_proj_warp_map, proj_cam_warp_map = combine_warp_maps(
+            warp_map_horiz, warp_map_vert)
 
         print(im_horiz)
         print(im_vert)
