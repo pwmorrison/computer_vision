@@ -3,6 +3,7 @@ from PIL import Image
 from glob import glob
 import os
 import matplotlib.pyplot as plt
+import cv2
 
 
 def number_to_gray_code_array(num, num_bits):
@@ -367,6 +368,34 @@ def generate_warp_map(frame_dir, file_name_horiz, file_name_vert, cam_img_dim,
     return warp_map_horiz, warp_map_vert, im_horiz, im_vert
 
 
+def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size):
+    """
+    Finds homographies in an warp map. This verifies that we can use findHomography
+    with RANSAC to find the planes in an image.
+    """
+    proj_pts = list(proj_cam_warp_map.keys())
+    proj_pts.sort()
+    cam_pts = []
+    for proj_pt in proj_pts:
+        cam_pt = proj_cam_warp_map[proj_pt]
+        print(proj_pt, cam_pt)
+        cam_pts.append(cam_pt)
+
+    proj_pts = np.array(proj_pts)
+    cam_pts = np.array(cam_pts)
+
+    M, mask = cv2.findHomography(proj_pts, cam_pts, cv2.RANSAC, 1.0)
+    mask = mask.ravel().tolist()
+    print(M)
+
+    cam_inliers = np.zeros((cam_size[1], cam_size[0]))
+    for i, inlier_flag in enumerate(mask):
+        if inlier_flag == 1:
+            cam_pt = cam_pts[i]
+            cam_inliers[cam_pt[1], cam_pt[0]] = 255
+    cv2.imshow('Cam inliers', cam_inliers)
+
+
 def main():
     if 0:
         # Test code for generating gray code frames and decoding them.
@@ -423,7 +452,8 @@ def main():
         elif 1:
             # Windows, pos, 500x500, horiz and vert.
             # frame_dir = r"gray_code_500x500_horiz_vert/"
-            frame_dir = r"gray_code_projector_500x500"
+            # frame_dir = r"gray_code_projector_500x500"
+            frame_dir = r"gray_code_projector_500x500_corner"
             # frame_dir = r"gray_code_screen_500x500"
             file_name_horiz = r"graycode*horiz.png"
             file_name_vert = r"graycode*vert.png"
@@ -440,6 +470,9 @@ def main():
 
         cam_proj_warp_map, proj_cam_warp_map = combine_warp_maps(
             warp_map_horiz, warp_map_vert)
+
+        find_homographies(
+            cam_proj_warp_map, proj_cam_warp_map, cam_img_dim, proj_img_dim)
 
         print(im_horiz)
         print(im_vert)
