@@ -368,6 +368,36 @@ def generate_warp_map(frame_dir, file_name_horiz, file_name_vert, cam_img_dim,
     return warp_map_horiz, warp_map_vert, im_horiz, im_vert
 
 
+def find_camera_quad(cam_pts, cam_img_dim):
+    """
+    Finds a quad surrounding the given set of camera points.
+    Assumes that the points are dense enough that, when the points are rendered
+    to an image, it forms a quad in the image.
+    """
+    # Render the camera points to an image.
+    cam_img = np.zeros((cam_img_dim[1], cam_img_dim[0]), dtype=np.uint8)
+    for cam_pt in cam_pts:
+        cam_img[int(cam_pt[1]), int(cam_pt[0])] = 255
+    # Get the edges in the image.
+    bin = cv2.Canny(cam_img, 0, 50, apertureSize=5)
+    bin = cv2.dilate(bin, None)
+    # Find the contours in the image, matching the edges.
+    bin, contours, hierarchy = cv2.findContours(bin, cv2.RETR_LIST,
+                                                cv2.CHAIN_APPROX_SIMPLE)
+    # Select te quad that we'll use.
+    # The quad should be large enough, have 4 sides, etc.
+    quads = []
+    for cnt in contours:
+        cnt_len = cv2.arcLength(cnt, True)
+        cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, True)
+        if len(cnt) == 4 and cv2.contourArea(
+                cnt) > 1000 and cv2.isContourConvex(cnt):
+            cnt = cnt.reshape(-1, 2)
+            quads.append(cnt)
+    quads = np.array(quads)
+    return quads
+
+
 def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size):
     """
     Finds homographies in an warp map. This verifies that we can use findHomography
@@ -378,23 +408,124 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
     cam_pts = []
     for proj_pt in proj_pts:
         cam_pt = proj_cam_warp_map[proj_pt]
-        print(proj_pt, cam_pt)
         cam_pts.append(cam_pt)
 
-    proj_pts = np.array(proj_pts)
-    cam_pts = np.array(cam_pts)
+    proj_pts = np.array(proj_pts, dtype=np.float32)
+    cam_pts = np.array(cam_pts, dtype=np.float32)
 
-    M, mask = cv2.findHomography(proj_pts, cam_pts, cv2.RANSAC, 1.0)
-    mask = mask.ravel().tolist()
-    print(M)
+    # Iterate over the image, finding a new plane at each iteration.
+    homogs = []
+    plane_quads = []
+    for iteration in range(2):
 
-    cam_inliers = np.zeros((cam_size[1], cam_size[0]))
-    for i, inlier_flag in enumerate(mask):
-        if inlier_flag == 1:
+        M, mask = cv2.findHomography(proj_pts, cam_pts, cv2.RANSAC, 2.0)
+        mask = mask.ravel().tolist()
+        print(M)
+
+        cam_inliers_img = np.zeros((cam_size[1], cam_size[0]))
+        cam_inliers = []
+        proj_outliers = []
+        cam_outliers = []
+        for i, inlier_flag in enumerate(mask):
+            proj_pt = proj_pts[i]
             cam_pt = cam_pts[i]
-            cam_inliers[cam_pt[1], cam_pt[0]] = 255
-    cv2.imshow('Cam inliers', cam_inliers)
+            if inlier_flag == 1:
+                cam_inliers_img[int(cam_pt[1]), int(cam_pt[0])] = 255
+                cam_inliers.append(cam_pt)
+            else:
+                proj_outliers.append(proj_pt)
+                cam_outliers.append(cam_pt)
 
+        # Get the quads surrounding the inliers.
+        quads = find_camera_quad(cam_inliers, cam_size)
+        print("Quads:", quads)
+        # Insert the quads into the inliers image.
+        cam_inliers_img_rgb = np.zeros(
+            (cam_inliers_img.shape[0], cam_inliers_img.shape[1], 3))
+        cam_inliers_img_rgb[:, :, 0] = cam_inliers_img
+        cam_inliers_img_rgb[:, :, 1] = cam_inliers_img
+        cam_inliers_img_rgb[:, :, 2] = cam_inliers_img
+        print([quads])
+        cv2.drawContours(cam_inliers_img_rgb, [quads], -1, (0, 0, 255), 5)
+
+        cv2.imshow('Cam inliers %d:' % (iteration), cam_inliers_img_rgb)
+
+        homogs.append(M)
+        plane_quads.append(quads)
+
+        # Replace the current projector and camera points with the outliers.
+        proj_pts = np.array(proj_outliers)
+        cam_pts = np.array(cam_outliers)
+
+    # Render all quads into a camera image.
+
+    # Render all quads into a projector image.
+    proj_quads_img = np.zeros((proj_size[1], proj_size[0], 3))
+    for plane_num in range(len(homogs)):
+        # Invert the homography, to map from camera space to projector space.
+        success, M_inv = cv2.invert(M)
+        # Map the quads to projector space.
+        quads_cam = plane_quads[plane_num]
+        quads_proj = []
+        for quad in quads_cam:
+            quad = quad.astype(np.float64)
+            quad_proj = cv2.perspectiveTransform(np.array([quad]), M_inv)
+            quads_proj.append(quad_proj.astype(np.int32))
+        # quads_cam = quads_cam.astype(np.float64)
+        # quads_proj = cv2.perspectiveTransform(quads_cam, M_inv)
+        print(quads_proj)
+
+        # quads_proj = quads_proj.tolist()
+        cv2.drawContours(proj_quads_img, quads_proj, -1, (0, 0, 255), 5)
+    cv2.imshow('Projector space quads', proj_quads_img)
+
+    return homogs, plane_quads
+
+
+def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
+    cam_proj_pts = np.array(list(cam_proj_warp_map.items()), dtype=np.float32)
+    cam_pts = cam_proj_pts[:, 0, :]
+    proj_pts = cam_proj_pts[:, 1, :]
+    # Find the homography (plane) that has the smallest "reprojection" error.
+    # First, determine the error for each point, under each homography (plane).
+    homog_errors = []
+    for proj_cam_homog in homogs:
+        # Errors when mapping from projector to camera.
+        mapped_cam_pts = cv2.perspectiveTransform(
+            np.array([proj_pts]).astype(np.float64), proj_cam_homog)
+        mapped_cam_pts = mapped_cam_pts[0]
+        cam_errors = np.linalg.norm(cam_pts - mapped_cam_pts, axis=1)
+        # Errors when mapping from camera to projector.
+        success, cam_proj_homog = cv2.invert(proj_cam_homog)
+        mapped_proj_pts = cv2.perspectiveTransform(
+            np.array([cam_pts]).astype(np.float64), cam_proj_homog)
+        mapped_proj_pts = mapped_proj_pts[0]
+        proj_errors = np.linalg.norm(proj_pts - mapped_proj_pts, axis=1)
+        summed_errors = proj_errors# cam_errors + proj_errors
+        homog_errors.append(summed_errors)
+    homog_errors = np.array(homog_errors)
+    min_error_homog = np.argmin(homog_errors, axis=0)
+    min_errors = np.amin(homog_errors, axis=0)
+    tmp = 0
+
+    # Form a camera image that contains all the planes, with pixels coloured
+    # according to the plane they belong to.
+    cam_plane_img = np.zeros((cam_size[1], cam_size[0], 3))
+    for i in range(cam_pts.shape[0]):
+        cam_pt = cam_pts[i]
+        plane = min_error_homog[i]
+        error = min_errors[i]
+        if error > 10:
+            continue
+        if plane == 0:
+            cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 0] = 255
+        elif plane == 1:
+            cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 1] = 255
+        else:
+            assert(False)
+    cv2.imshow('Camera space planes', cam_plane_img)
+
+    return cam_plane_img
 
 def main():
     if 0:
@@ -471,8 +602,10 @@ def main():
         cam_proj_warp_map, proj_cam_warp_map = combine_warp_maps(
             warp_map_horiz, warp_map_vert)
 
-        find_homographies(
+        homogs, plane_quads = find_homographies(
             cam_proj_warp_map, proj_cam_warp_map, cam_img_dim, proj_img_dim)
+
+        allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_img_dim)
 
         print(im_horiz)
         print(im_vert)
