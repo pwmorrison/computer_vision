@@ -9,7 +9,8 @@ from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-GRAY_CODE_DIR = "gray_code_projector_500x500_corner"
+# GRAY_CODE_DIR = "gray_code_projector_500x500_corner"
+GRAY_CODE_DIR = "gray_code"
 GRAY_CODE_DELAY = 500
 GRAY_CODE_FILENAME_HORIZ = r"graycode*horiz.png"
 GRAY_CODE_FILENAME_VERT = r"graycode*vert.png"
@@ -181,7 +182,7 @@ def render_planes(gameDisplay, cam_proj_warp_map, proj_cam_warp_map):
         plane = proj_planes_dict[proj_pt]
         if plane is None:
             continue
-            
+
         if plane == 0:
             colour = (255, 0, 0)
         elif plane == 1:
