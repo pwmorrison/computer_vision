@@ -4,11 +4,12 @@ from PIL import Image
 import os
 import numpy as np
 from gray_code import generate_gray_code_sequence, generate_gray_code_bit_planes, \
-    generate_warp_map, combine_warp_maps
+    generate_warp_map, combine_warp_maps, find_homographies, \
+    allocate_warp_map_pts_to_planes
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-GRAY_CODE_DIR = "gray_code_projector_500x500"
+GRAY_CODE_DIR = "gray_code_projector_500x500_corner"
 GRAY_CODE_DELAY = 500
 GRAY_CODE_FILENAME_HORIZ = r"graycode*horiz.png"
 GRAY_CODE_FILENAME_VERT = r"graycode*vert.png"
@@ -99,6 +100,8 @@ def render_home_screen(gameDisplay):
     gameDisplay.blit(label, (100, 120))
     label = font.render("E - Render edges", 1, (255, 255, 0))
     gameDisplay.blit(label, (100, 140))
+    label = font.render("P - Render planes", 1, (255, 255, 0))
+    gameDisplay.blit(label, (100, 160))
 
 
 def render_edges(gameDisplay, warp_map_im_horiz, warp_map_im_vert,
@@ -158,6 +161,34 @@ def render_edges(gameDisplay, warp_map_im_horiz, warp_map_im_vert,
                     continue
                 proj_pos = cam_proj_warp_map[cam_pos]
                 pygame.draw.circle(gameDisplay, (255, 0, 0), proj_pos, 10, 0)
+
+
+def render_planes(gameDisplay, cam_proj_warp_map, proj_cam_warp_map):
+    """
+    Determines the planes in an image, and renders the warp maps according to the
+    planes.
+    """
+    homogs, plane_quads = find_homographies(
+        cam_proj_warp_map, proj_cam_warp_map, CAM_DIM, PROJ_DIM)
+
+    cam_planes_dict, proj_planes_dict, cam_plane_img = \
+        allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, CAM_DIM)
+
+    # Render the projector pixels according to the plane they are assigned to.
+    gameDisplay.fill(BLACK)
+    proj_pts = list(proj_planes_dict.keys())
+    for proj_pt in proj_pts:
+        plane = proj_planes_dict[proj_pt]
+        if plane is None:
+            continue
+            
+        if plane == 0:
+            colour = (255, 0, 0)
+        elif plane == 1:
+            colour = (0, 255, 0)
+        else:
+            colour = (0, 0, 255)
+        pygame.draw.circle(gameDisplay, colour, proj_pt, 2, 0)
 
 
 def create_warp_map_from_dir():
@@ -285,6 +316,7 @@ class App():
         crashed = False
         gray_code = False
         edges = False
+        planes = False
         while not crashed:
 
             for event in pygame.event.get():
@@ -317,6 +349,15 @@ class App():
                         else:
                             print("Stopping rendering edges.")
                             edges = False
+                    elif event.key == pygame.K_p:
+                        if planes == False:
+                            print("Rendering planes.")
+                            render_planes(gameDisplay, self.cam_proj_warp_map,
+                                          self.proj_cam_warp_map)
+                            planes = True
+                        else:
+                            print("Stopping rendering planes.")
+                            planes = False
                 if event.type == GRAYCODEEVENT:
                     print("Rendering / capturing gray code frame.")
                     keep_processing = gray_code_controller.process()
@@ -326,7 +367,7 @@ class App():
                         gray_code = False
                 print(event)
 
-            if not gray_code and not edges:
+            if not gray_code and not edges and not planes:
                 render_home_screen(gameDisplay)
 
             pygame.display.update()

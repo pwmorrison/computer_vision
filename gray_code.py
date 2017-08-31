@@ -506,7 +506,19 @@ def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
     homog_errors = np.array(homog_errors)
     min_error_homog = np.argmin(homog_errors, axis=0)
     min_errors = np.amin(homog_errors, axis=0)
-    tmp = 0
+
+    # Form dictionaries mapping cam and proj points to planes.
+    cam_plane_dict = {}
+    proj_plane_dict = {}
+    for i in range(cam_pts.shape[0]):
+        cam_pt = cam_pts[i]
+        proj_pt = proj_pts[i]
+        plane = min_error_homog[i]
+        error = min_errors[i]
+        if error > 10:
+            plane = None
+        cam_plane_dict[(int(cam_pt[0]), int(cam_pt[1]))] = plane
+        proj_plane_dict[(int(proj_pt[0]), int(proj_pt[1]))] = plane
 
     # Form a camera image that contains all the planes, with pixels coloured
     # according to the plane they belong to.
@@ -523,9 +535,9 @@ def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
             cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 1] = 255
         else:
             assert(False)
-    cv2.imshow('Camera space planes', cam_plane_img)
+    # cv2.imshow('Camera space planes', cam_plane_img)
 
-    return cam_plane_img
+    return cam_plane_dict, proj_plane_dict, cam_plane_img
 
 def main():
     if 0:
@@ -605,7 +617,9 @@ def main():
         homogs, plane_quads = find_homographies(
             cam_proj_warp_map, proj_cam_warp_map, cam_img_dim, proj_img_dim)
 
-        allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_img_dim)
+        cam_planes_dict, proj_planes_dict, cam_plane_img = \
+            allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_img_dim)
+        cv2.imshow('Camera space planes', cam_plane_img)
 
         print(im_horiz)
         print(im_vert)
