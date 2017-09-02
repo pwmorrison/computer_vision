@@ -403,12 +403,21 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
     Finds homographies in an warp map. This verifies that we can use findHomography
     with RANSAC to find the planes in an image.
     """
-    proj_pts = list(proj_cam_warp_map.keys())
-    proj_pts.sort()
+    all_proj_pts = list(proj_cam_warp_map.keys())
+    # proj_pts.sort()
     cam_pts = []
-    for proj_pt in proj_pts:
+    proj_pts = []
+    for i in range(len(all_proj_pts)):
+        proj_pt = all_proj_pts[i]
         cam_pt = proj_cam_warp_map[proj_pt]
+
+        # if proj_pt[0] < 180 or proj_pt[0] > 560 or proj_pt[1] < 150 or proj_pt[1] > 530:
+        # if proj_pt[0] < 180 or proj_pt[0] > 560:# or proj_pt[1] < 150 or proj_pt[1] > 530:
+        # if proj_pt[0] < 180 or proj_pt[0] > 340:#560:
+        #     continue
+
         cam_pts.append(cam_pt)
+        proj_pts.append(proj_pt)
 
     proj_pts = np.array(proj_pts, dtype=np.float32)
     cam_pts = np.array(cam_pts, dtype=np.float32)
@@ -418,7 +427,7 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
     plane_quads = []
     for iteration in range(2):
 
-        M, mask = cv2.findHomography(proj_pts, cam_pts, cv2.RANSAC, 2.0)
+        M, mask = cv2.findHomography(proj_pts, cam_pts, cv2.RANSAC, 1.0)
         mask = mask.ravel().tolist()
         print(M)
 
@@ -506,6 +515,7 @@ def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
     homog_errors = np.array(homog_errors)
     min_error_homog = np.argmin(homog_errors, axis=0)
     min_errors = np.amin(homog_errors, axis=0)
+    max_errors = np.amax(homog_errors, axis=0)
 
     # Form dictionaries mapping cam and proj points to planes.
     cam_plane_dict = {}
@@ -536,6 +546,85 @@ def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
         else:
             assert(False)
     # cv2.imshow('Camera space planes', cam_plane_img)
+
+    # Form a camera image that shows the minimum error.
+    cam_error_img = np.zeros((cam_size[1], cam_size[0]), dtype=np.float32)
+    for i in range(cam_pts.shape[0]):
+        cam_pt = cam_pts[i]
+        min_error = min_errors[i]
+        max_error = max_errors[i]
+        if min_error > 10:
+            continue
+        # error = min_errors[i] / 10  # np.amax(min_errors)
+        cam_error_img[int(cam_pt[1]), int(cam_pt[0])] = max_error
+    # Use this value to adjust the "gap" between planes. Smaller value = smaller gap.
+    error_gap_thresh = 10
+    cam_error_img[cam_error_img > error_gap_thresh] = error_gap_thresh
+    cam_error_img /= error_gap_thresh
+    # Make a copy so we can view the original errors later.
+    original_cam_error_img = cam_error_img.copy()
+    # Threshold.
+    cam_error_img[cam_error_img >= 0.2] = 1.0
+    cam_error_img[cam_error_img < 0.2] = 0.0
+    # Filter to remove noise, and smooth the edges.
+    # cam_error_img = cv2.blur(cam_error_img, (5, 5))
+    # cam_error_img = cv2.GaussianBlur(cam_error_img, (5, 5), 0)
+    # cam_error_img = cv2.medianBlur(cam_error_img, 5)
+    cam_error_img = cv2.bilateralFilter(cam_error_img,9,75,75)
+    # cam_error_img[cam_error_img >= 0.2] = 1.0
+    # Dilation to make the subsequent contour match the boundary closer.
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(10, 10))
+    cam_error_img = cv2.dilate(cam_error_img, kernel, iterations=1)
+    # cv2.imshow('Camera space homog error', cam_error_img)
+    # Find the contours in the image, matching the edges.
+    bin, contours, hierarchy = cv2.findContours(
+        cam_error_img.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    # The polygons should be large enough.
+    polys = []
+    for cnt in contours:
+        cnt_len = cv2.arcLength(cnt, True)
+        cnt = cv2.approxPolyDP(cnt, 0.02 * cnt_len, True)
+        if cv2.contourArea(cnt) > 1000:# and cv2.isContourConvex(cnt):
+            cnt = cnt.reshape(-1, 2)
+            polys.append(cnt)
+    polys = np.array(polys)
+    cv2.drawContours(original_cam_error_img, polys, -1, (0, 0, 255), 1)
+    cv2.imshow('Camera space error polys', original_cam_error_img)
+
+    filled_poly_imgs = []
+    for poly in polys:
+        filled_poly_img = np.zeros((cam_size[1], cam_size[0]), dtype=np.float32)
+        cv2.fillPoly(filled_poly_img, pts=[poly], color=(1))
+        filled_poly_imgs.append(filled_poly_img)
+
+    # Re-create the plane dicts, according to the determined plane contours.
+    cam_plane_dict = {}
+    proj_plane_dict = {}
+    for i in range(cam_pts.shape[0]):
+        cam_pt = cam_pts[i]
+        proj_pt = proj_pts[i]
+
+        found_poly = False
+        for plane, filled_poly_img in enumerate(filled_poly_imgs):
+            if filled_poly_img[int(cam_pt[1]), int(cam_pt[0])] == 1:
+                found_poly = True
+                break
+        if not found_poly:
+            plane = None
+
+        cam_plane_dict[(int(cam_pt[0]), int(cam_pt[1]))] = plane
+        proj_plane_dict[(int(proj_pt[0]), int(proj_pt[1]))] = plane
+
+    cam_plane_img = np.zeros((cam_size[1], cam_size[0], 3))
+    for i in range(cam_pts.shape[0]):
+        cam_pt = cam_pts[i]
+        plane = cam_plane_dict[(int(cam_pt[0]), int(cam_pt[1]))]
+        if plane == 0:
+            cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 0] = 255
+        elif plane == 1:
+            cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 1] = 255
+        else:
+            pass
 
     return cam_plane_dict, proj_plane_dict, cam_plane_img
 
