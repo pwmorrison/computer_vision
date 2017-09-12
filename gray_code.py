@@ -3,6 +3,7 @@ from PIL import Image
 from glob import glob
 import os
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import cv2
 
 
@@ -110,8 +111,8 @@ def decode_bit_plane_images(bit_plane_images, black_image, white_image, threshol
     For now, we simply threshold the grayscale data, half way between the 
     minimum and maximum intensity in the images.
     """
-    print("Decoding bit plane images.")
-    print("Bit plane images:", bit_plane_images)
+    # print("Decoding bit plane images.")
+    # print("Bit plane images:", bit_plane_images)
 
     if black_image is not None:
         black_im = Image.open(black_image)
@@ -132,7 +133,7 @@ def decode_bit_plane_images(bit_plane_images, black_image, white_image, threshol
         w, h = im.size
         im_data = list(im.getdata())
         im_data = np.asarray(im_data)
-        print(im_data.shape)
+        # print(im_data.shape)
         im_data = im_data.reshape((h, w))
 
         # Threshold the data.
@@ -150,8 +151,8 @@ def decode_bit_plane_images(bit_plane_images, black_image, white_image, threshol
     warp_map_dict = {}
 
     depth, height, width = all_data.shape
-    print(depth, width, height)
-    print('')
+    # print(depth, width, height)
+    # print('')
     for y in range(height):
         for x in range(width):
 
@@ -217,7 +218,7 @@ def write_warp_map_to_images(output_dir,
     camera_positions.sort()
 
     filename = "warp_map.csv"
-    print("Outputting file to %s" % (filename))
+    print("Outputting warp map to file: %s" % (filename))
     csv_file = open(os.path.join(output_dir, filename), "w")
     row_str = "cam_x, cam_y, proj_x, proj_y\n"
     csv_file.write(row_str)
@@ -296,6 +297,7 @@ def combine_warp_maps(warp_map_horiz, warp_map_vert):
     camera to projector pixel, given the horizontal and vertical camera-projector
     warp maps.
     """
+    print("Combining horizontal and vertical warp maps.")
     cam_proj_warp_map = {}
     proj_cam_warp_map = {}
 
@@ -316,7 +318,7 @@ def generate_warp_map(frame_dir, file_name_horiz, file_name_vert, cam_img_dim,
         # Decode the bit planes, to generate a warp map.
         images = glob(os.path.join(frame_dir, file_name_horiz))
         images.sort()
-        print(images)
+        print("Generating horizontal warp map using images: ", images)
 
         if 0:
             # Plot the input gray code images.
@@ -333,14 +335,15 @@ def generate_warp_map(frame_dir, file_name_horiz, file_name_vert, cam_img_dim,
             black_image = os.path.join(frame_dir, "black.png")
             white_image = os.path.join(frame_dir, "white.png")
 
-        warp_map_horiz = decode_bit_plane_images(images, black_image,
-                                                 white_image, 90)
+        warp_map_horiz = decode_bit_plane_images(
+            images, black_image, white_image, 90)
 
     warp_map_vert = None
     if generate_vertical:
         # Decode the bit planes, to generate a warp map.
         images = glob(os.path.join(frame_dir, file_name_vert))
         images.sort()
+        print("Generating vertical warp map using images: ", images)
 
         if 0:
             # Plot the input gray code images.
@@ -398,7 +401,8 @@ def find_camera_quad(cam_pts, cam_img_dim):
     return quads
 
 
-def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size):
+def find_homographies(
+        cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size, ransac_thresh=2.0):
     """
     Finds homographies in an warp map. This verifies that we can use findHomography
     with RANSAC to find the planes in an image.
@@ -413,7 +417,7 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
 
         # if proj_pt[0] < 180 or proj_pt[0] > 560 or proj_pt[1] < 150 or proj_pt[1] > 530:
         # if proj_pt[0] < 180 or proj_pt[0] > 560:# or proj_pt[1] < 150 or proj_pt[1] > 530:
-        # if proj_pt[0] < 180 or proj_pt[0] > 340:#560:
+        # if proj_pt[0] < 500 or proj_pt[1] < 500:#560:
         #     continue
 
         cam_pts.append(cam_pt)
@@ -426,10 +430,10 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
     homogs = []
     plane_quads = []
     for iteration in range(2):
-
-        M, mask = cv2.findHomography(proj_pts, cam_pts, cv2.RANSAC, 1.0)
+        print("Finding planes, iteration %d" % iteration)
+        M, mask = cv2.findHomography(proj_pts, cam_pts, cv2.RANSAC, ransac_thresh)
         mask = mask.ravel().tolist()
-        print(M)
+        # print(M)
 
         cam_inliers_img = np.zeros((cam_size[1], cam_size[0]))
         cam_inliers = []
@@ -447,14 +451,14 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
 
         # Get the quads surrounding the inliers.
         quads = find_camera_quad(cam_inliers, cam_size)
-        print("Quads:", quads)
+        print("Quads at iteration %d:" % iteration, quads)
         # Insert the quads into the inliers image.
         cam_inliers_img_rgb = np.zeros(
             (cam_inliers_img.shape[0], cam_inliers_img.shape[1], 3))
         cam_inliers_img_rgb[:, :, 0] = cam_inliers_img
         cam_inliers_img_rgb[:, :, 1] = cam_inliers_img
         cam_inliers_img_rgb[:, :, 2] = cam_inliers_img
-        print([quads])
+        # print([quads])
         cv2.drawContours(cam_inliers_img_rgb, [quads], -1, (0, 0, 255), 5)
 
         cv2.imshow('Cam inliers %d:' % (iteration), cam_inliers_img_rgb)
@@ -469,6 +473,7 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
     # Render all quads into a camera image.
 
     # Render all quads into a projector image.
+    print("Rendering quads to projector image.")
     proj_quads_img = np.zeros((proj_size[1], proj_size[0], 3))
     for plane_num in range(len(homogs)):
         # Invert the homography, to map from camera space to projector space.
@@ -482,7 +487,7 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
             quads_proj.append(quad_proj.astype(np.int32))
         # quads_cam = quads_cam.astype(np.float64)
         # quads_proj = cv2.perspectiveTransform(quads_cam, M_inv)
-        print(quads_proj)
+        # print(quads_proj)
 
         # quads_proj = quads_proj.tolist()
         cv2.drawContours(proj_quads_img, quads_proj, -1, (0, 0, 255), 5)
@@ -491,12 +496,38 @@ def find_homographies(cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size)
     return homogs, plane_quads
 
 
-def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
+def allocate_warp_map_pts_to_planes(
+        cam_proj_warp_map, homogs, cam_size, max_error_thresh=5,
+        cam_error_thresh=0.2, max_error_ceiling=20):
+    """
+    Allocates the mapped points in a warp map to planes, as defined by the given
+    homographies.
+    The error of each point is calculated, being a measure of the distance between
+    the point an the planes. In particularly, the maximum error defines how well each
+    point belongs to a single plane - if a point has large maximum error, and small
+    minimum error, it is probably a good point for its allocated plane. If a point
+    has small maximum error, it is close to two or more planes, and is therefore
+    not a good point, to use to define the planes.
+
+    cam_error_thresh -- (between 0 and 1). A threshold on the maximum error. Any
+    points less than this threshold are considered too close to two or more planes,
+    and therefore do not contribute to plane boundaries. Larger values cause the
+    planes to separate more.
+
+    max_error_ceiling -- (> 0). A limit on the maximum error values. This is used
+    to normalise the errors prior to applying cam_error_thresh, so it affects the
+    separation of planes etc.
+    """
+    print("Allocating warp map points to %d planes." % len(homogs))
+    # Extract the projector and camera points from the warp map.
     cam_proj_pts = np.array(list(cam_proj_warp_map.items()), dtype=np.float32)
     cam_pts = cam_proj_pts[:, 0, :]
     proj_pts = cam_proj_pts[:, 1, :]
-    # Find the homography (plane) that has the smallest "reprojection" error.
+
+    # Find the homography (plane) that has the smallest "reprojection" error, for
+    # each point.
     # First, determine the error for each point, under each homography (plane).
+    print("Determining homography errors for each warp map point.")
     homog_errors = []
     for proj_cam_homog in homogs:
         # Errors when mapping from projector to camera.
@@ -510,12 +541,18 @@ def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
             np.array([cam_pts]).astype(np.float64), cam_proj_homog)
         mapped_proj_pts = mapped_proj_pts[0]
         proj_errors = np.linalg.norm(proj_pts - mapped_proj_pts, axis=1)
-        summed_errors = proj_errors# cam_errors + proj_errors
+        # Combine the errors, to form a single error for this point.
+        summed_errors = cam_errors + proj_errors
         homog_errors.append(summed_errors)
     homog_errors = np.array(homog_errors)
+    # The plane that has the smallest error, for each point.
     min_error_homog = np.argmin(homog_errors, axis=0)
+    # The smallest error, for each point.
     min_errors = np.amin(homog_errors, axis=0)
+    # The largest error, for each point.
     max_errors = np.amax(homog_errors, axis=0)
+
+    print("Number of points allocated to each plane:", np.bincount(min_error_homog))
 
     # Form dictionaries mapping cam and proj points to planes.
     cam_plane_dict = {}
@@ -525,27 +562,45 @@ def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
         proj_pt = proj_pts[i]
         plane = min_error_homog[i]
         error = min_errors[i]
-        if error > 10:
-            plane = None
+        if error > max_error_thresh:
+            plane = -1
         cam_plane_dict[(int(cam_pt[0]), int(cam_pt[1]))] = plane
         proj_plane_dict[(int(proj_pt[0]), int(proj_pt[1]))] = plane
 
-    # Form a camera image that contains all the planes, with pixels coloured
-    # according to the plane they belong to.
-    cam_plane_img = np.zeros((cam_size[1], cam_size[0], 3))
-    for i in range(cam_pts.shape[0]):
-        cam_pt = cam_pts[i]
-        plane = min_error_homog[i]
-        error = min_errors[i]
-        if error > 10:
-            continue
-        if plane == 0:
-            cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 0] = 255
-        elif plane == 1:
-            cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 1] = 255
-        else:
-            assert(False)
-    # cv2.imshow('Camera space planes', cam_plane_img)
+    # Generate some other stats.
+    print(list(cam_plane_dict.values()))
+    unique_planes, counts = np.unique(list(cam_plane_dict.values()), return_counts=True)
+    print("Number of thresholded points allocated to each plane, at threshold %d:" %
+          max_error_thresh, np.asarray((unique_planes, counts)).T)
+    # for plane in unique_planes:
+    #     if plane == -1:
+    #         continue
+    #     # Get the minimum and maximum error for points allocated to this plane.
+    #     min_plane_error
+
+    if 0:
+        # Form a camera image that contains all the planes, with pixels coloured
+        # according to the plane they belong to.
+        colors = cm.rainbow(np.linspace(0, 1, len(homogs)))
+        # cmap = cm.get_cmap('Spectral')
+        cam_plane_img = np.zeros((cam_size[1], cam_size[0], 3))
+        for i in range(cam_pts.shape[0]):
+            cam_pt = cam_pts[i]
+            plane = min_error_homog[i]
+            error = min_errors[i]
+            if plane == -1:#is None:#error > max_error_thresh:
+                continue
+            colour = colors[plane]
+            # cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), :] = colour[:3]
+            # for colour_channel = [0, 1, 2]:
+            #     cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), colour_channel] = colour[]
+            if plane == 0:
+                cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 0] = 255
+            elif plane == 1:
+                cam_plane_img[int(cam_pt[1]), int(cam_pt[0]), 1] = 255
+            else:
+                assert(False)
+        # cv2.imshow('Camera space planes', cam_plane_img)
 
     # Form a camera image that shows the minimum error.
     cam_error_img = np.zeros((cam_size[1], cam_size[0]), dtype=np.float32)
@@ -553,24 +608,29 @@ def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
         cam_pt = cam_pts[i]
         min_error = min_errors[i]
         max_error = max_errors[i]
-        if min_error > 10:
+        if min_error > 100:
             continue
         # error = min_errors[i] / 10  # np.amax(min_errors)
         cam_error_img[int(cam_pt[1]), int(cam_pt[0])] = max_error
+    # Limit the maximum errors to the ceiling.
     # Use this value to adjust the "gap" between planes. Smaller value = smaller gap.
-    error_gap_thresh = 10
-    cam_error_img[cam_error_img > error_gap_thresh] = error_gap_thresh
-    cam_error_img /= error_gap_thresh
+    cam_error_img[cam_error_img > max_error_ceiling] = max_error_ceiling
+    # Normalise the max error values to between 0 and 1.
+    cam_error_img /= max_error_ceiling
     # Make a copy so we can view the original errors later.
     original_cam_error_img = cam_error_img.copy()
-    # Threshold.
-    cam_error_img[cam_error_img >= 0.2] = 1.0
-    cam_error_img[cam_error_img < 0.2] = 0.0
+    # Threshold the error image, to get a binary error map.
+    # Any value below the threshold is considered "close" to two or more planes,
+    # and therefore we can't allocate it to any one plane.
+    # The larger the threshold, the more separated the planes, around
+    # intersections between planes. Between 0 and 1.
+    cam_error_img[cam_error_img >= cam_error_thresh] = 1.0
+    cam_error_img[cam_error_img < cam_error_thresh] = 0.0
     # Filter to remove noise, and smooth the edges.
     # cam_error_img = cv2.blur(cam_error_img, (5, 5))
     # cam_error_img = cv2.GaussianBlur(cam_error_img, (5, 5), 0)
     # cam_error_img = cv2.medianBlur(cam_error_img, 5)
-    cam_error_img = cv2.bilateralFilter(cam_error_img,9,75,75)
+    cam_error_img = cv2.bilateralFilter(cam_error_img, 9, 75, 75)
     # cam_error_img[cam_error_img >= 0.2] = 1.0
     # Dilation to make the subsequent contour match the boundary closer.
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(10, 10))
@@ -579,6 +639,7 @@ def allocate_warp_map_pts_to_planes(cam_proj_warp_map, homogs, cam_size):
     # Find the contours in the image, matching the edges.
     bin, contours, hierarchy = cv2.findContours(
         cam_error_img.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    print("Found %d contours in camera error image." % len(contours))
     # The polygons should be large enough.
     polys = []
     for cnt in contours:
@@ -685,8 +746,10 @@ def main():
             # Windows, pos, 500x500, horiz and vert.
             # frame_dir = r"gray_code_500x500_horiz_vert/"
             # frame_dir = r"gray_code_projector_500x500"
-            frame_dir = r"gray_code_projector_500x500_corner"
+            # frame_dir = r"gray_code_projector_500x500_corner"
             # frame_dir = r"gray_code_screen_500x500"
+            # frame_dir = r"gray_code_garagenight2"
+            frame_dir = r"gray_code_projector_500x500_corner"
             file_name_horiz = r"graycode*horiz.png"
             file_name_vert = r"graycode*vert.png"
             cam_img_dim = (640, 480)
