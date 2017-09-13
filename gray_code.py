@@ -402,10 +402,16 @@ def find_camera_quad(cam_pts, cam_img_dim):
 
 
 def find_homographies(
-        cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size, ransac_thresh=2.0):
+        cam_proj_warp_map, proj_cam_warp_map, cam_size, proj_size,
+        ransac_thresh=0.5, homog_error_thresh=5):
     """
     Finds homographies in an warp map. This verifies that we can use findHomography
     with RANSAC to find the planes in an image.
+
+    homog_error_thresh -- threshold used to mark points as inliers, with respect to
+    a plane homography. Points with an error below this value are considered part
+    of the plane, at a given iteration, and are therefore not used to calculate
+    further plane homographies. If too large, the planes will be too large.
     """
     all_proj_pts = list(proj_cam_warp_map.keys())
     # proj_pts.sort()
@@ -435,6 +441,10 @@ def find_homographies(
         mask = mask.ravel().tolist()
         # print(M)
 
+        # Determine the error of all remaining points, with reference to the
+        # found homography.
+        errors = determine_homography_errors(M, proj_pts, cam_pts)
+
         cam_inliers_img = np.zeros((cam_size[1], cam_size[0]))
         cam_inliers = []
         proj_outliers = []
@@ -442,7 +452,10 @@ def find_homographies(
         for i, inlier_flag in enumerate(mask):
             proj_pt = proj_pts[i]
             cam_pt = cam_pts[i]
-            if inlier_flag == 1:
+            error = errors[i]
+            # Inliers are those used to calculate the homography, and those
+            # within a tolerance of the homography.
+            if inlier_flag == 1 or error <= homog_error_thresh:
                 cam_inliers_img[int(cam_pt[1]), int(cam_pt[0])] = 255
                 cam_inliers.append(cam_pt)
             else:
@@ -496,6 +509,26 @@ def find_homographies(
     return homogs, plane_quads
 
 
+def determine_homography_errors(proj_cam_homog, proj_pts, cam_pts):
+    """
+    Determines the errors of the given points, with respect to the homography.
+    """
+    # Errors when mapping from projector to camera.
+    mapped_cam_pts = cv2.perspectiveTransform(
+        np.array([proj_pts]).astype(np.float64), proj_cam_homog)
+    mapped_cam_pts = mapped_cam_pts[0]
+    cam_errors = np.linalg.norm(cam_pts - mapped_cam_pts, axis=1)
+    # Errors when mapping from camera to projector.
+    success, cam_proj_homog = cv2.invert(proj_cam_homog)
+    mapped_proj_pts = cv2.perspectiveTransform(
+        np.array([cam_pts]).astype(np.float64), cam_proj_homog)
+    mapped_proj_pts = mapped_proj_pts[0]
+    proj_errors = np.linalg.norm(proj_pts - mapped_proj_pts, axis=1)
+    # Combine the errors, to form a single error for this point.
+    summed_errors = cam_errors + proj_errors
+    return summed_errors
+
+
 def allocate_warp_map_pts_to_planes(
         cam_proj_warp_map, homogs, cam_size, max_error_thresh=5,
         cam_error_thresh=0.2, max_error_ceiling=20):
@@ -530,20 +563,21 @@ def allocate_warp_map_pts_to_planes(
     print("Determining homography errors for each warp map point.")
     homog_errors = []
     for proj_cam_homog in homogs:
-        # Errors when mapping from projector to camera.
-        mapped_cam_pts = cv2.perspectiveTransform(
-            np.array([proj_pts]).astype(np.float64), proj_cam_homog)
-        mapped_cam_pts = mapped_cam_pts[0]
-        cam_errors = np.linalg.norm(cam_pts - mapped_cam_pts, axis=1)
-        # Errors when mapping from camera to projector.
-        success, cam_proj_homog = cv2.invert(proj_cam_homog)
-        mapped_proj_pts = cv2.perspectiveTransform(
-            np.array([cam_pts]).astype(np.float64), cam_proj_homog)
-        mapped_proj_pts = mapped_proj_pts[0]
-        proj_errors = np.linalg.norm(proj_pts - mapped_proj_pts, axis=1)
-        # Combine the errors, to form a single error for this point.
-        summed_errors = cam_errors + proj_errors
-        homog_errors.append(summed_errors)
+        # # Errors when mapping from projector to camera.
+        # mapped_cam_pts = cv2.perspectiveTransform(
+        #     np.array([proj_pts]).astype(np.float64), proj_cam_homog)
+        # mapped_cam_pts = mapped_cam_pts[0]
+        # cam_errors = np.linalg.norm(cam_pts - mapped_cam_pts, axis=1)
+        # # Errors when mapping from camera to projector.
+        # success, cam_proj_homog = cv2.invert(proj_cam_homog)
+        # mapped_proj_pts = cv2.perspectiveTransform(
+        #     np.array([cam_pts]).astype(np.float64), cam_proj_homog)
+        # mapped_proj_pts = mapped_proj_pts[0]
+        # proj_errors = np.linalg.norm(proj_pts - mapped_proj_pts, axis=1)
+        # # Combine the errors, to form a single error for this point.
+        # errors = cam_errors + proj_errors
+        errors = determine_homography_errors(proj_cam_homog, proj_pts, cam_pts)
+        homog_errors.append(errors)
     homog_errors = np.array(homog_errors)
     # The plane that has the smallest error, for each point.
     min_error_homog = np.argmin(homog_errors, axis=0)
