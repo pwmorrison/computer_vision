@@ -29,7 +29,7 @@ class QuadTreeNode:
 
 class QuadTree:
     """
-
+    A generic quad tree.
     """
 
     def __init__(self, max_x, max_y, min_cell_size):
@@ -170,7 +170,31 @@ class TestStringMethods(unittest.TestCase):
 
 class TestRectangleMethods(unittest.TestCase):
 
-    def
+    def setUp(self):
+        max_x = 500
+        max_y = max_x
+        min_cell_size = 10
+        self.rr = RectangleRenderer(max_x, max_y)
+        self.qt = QuadTree(max_x, max_y, min_cell_size)
+
+    def test_rectangle_intersection(self):
+        # Tests the intersection of an area with a rectangle.
+        r = Rectangle(10, 10, 20, 30, (255, 0, 0))
+        # A region that doesn't intersect the rectangle.
+        self.assertEqual(r.intersection_area(10, 50, 10, 10), 0)
+        self.assertEqual(r.intersection_area(40, 0, 10, 10), 0)
+        self.assertEqual(r.intersection_area(0, 0, 5, 5), 0)
+        # A region with an edge abutting the rectangle.
+        # A region touching corners with the rectangle.
+        # A region wholly inside the rectangle.
+        # A region surrounding the rectangle.
+        # A region intersecting from the side.
+        # A regin intersecting the corner.
+
+    def test_create_tree(self):
+        # self.qt.create_tree(self.rr.cb_split_node)
+        # PAUL: Implement this later.
+        pass
 
 if __name__ == '__main__':
     unittest.main()
