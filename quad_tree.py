@@ -88,6 +88,9 @@ class Rectangle:
         self.h = h
         self.colour = colour
 
+    def get_area(self):
+        return self.w * self.h
+
     def intersection_area(self, x, y, w, h):
         """Calculates the intersection with the given square."""
         # Go through the cases where there is no intersection.
@@ -116,12 +119,16 @@ class RectangleRenderer:
     def __init__(self, max_x, max_y):
         self.max_x = max_x
         self.max_y = max_y
-        self.rectangles = self.create_rectangles()
+        self.rectangles = []
+        # self.rectangles = self.create_rectangles()
 
     def create_rectangles(self):
         rectangles = [Rectangle(10, 10, 20, 30, (255, 0, 0)),
                       Rectangle(50, 20, 100, 50, (255, 255, 0)),]
         return rectangles
+
+    def add_rectangle(self, r):
+        self.rectangles.append(r)
 
     def cb_split_node(self, x, y, w, h):
         """
@@ -129,10 +136,30 @@ class RectangleRenderer:
         Returns True, if the node should be split, False otherwise.
         """
         # In this renderer, we need to split if the node contains more than one
-        # rectangle, or an edge or a rectangle.
+        # rectangle, or an edge of a rectangle.
+        # Loop over the rectangles, and detect cases where we need to split.
         n_overlapping_rects = 0
+        cell_area = w * h
         for rect in self.rectangles:
-            pass
+            intersection_area = rect.intersection_area(x, y, w, h)
+            if intersection_area == 0:
+                # Can ignore this rectangle.
+                continue
+            rect_area = rect.get_area()
+            if intersection_area < cell_area and intersection_area < rect_area:
+                # The rectangle is only partially inside this cell.
+                return True
+            # if rect_area < cell_area and intersection_area < rect_area:
+            #     # The rectangle is only partially inside this cell.
+            #     return True
+            # The rectangle fully surrounds this cell, or the cell fully surrounds
+            # the rectangle.
+            n_overlapping_rects += 1
+
+        if n_overlapping_rects > 1:
+            return True
+
+        return False
 
     def cb_process_node(self):
         """
@@ -168,6 +195,7 @@ class TestStringMethods(unittest.TestCase):
         with self.assertRaises(TypeError):
             s.split(2)
 
+
 class TestRectangleMethods(unittest.TestCase):
 
     def setUp(self):
@@ -178,18 +206,54 @@ class TestRectangleMethods(unittest.TestCase):
         self.qt = QuadTree(max_x, max_y, min_cell_size)
 
     def test_rectangle_intersection(self):
-        # Tests the intersection of an area with a rectangle.
+        """ Tests the intersection of an area with a rectangle. """
         r = Rectangle(10, 10, 20, 30, (255, 0, 0))
         # A region that doesn't intersect the rectangle.
         self.assertEqual(r.intersection_area(10, 50, 10, 10), 0)
         self.assertEqual(r.intersection_area(40, 0, 10, 10), 0)
         self.assertEqual(r.intersection_area(0, 0, 5, 5), 0)
         # A region with an edge abutting the rectangle.
+        self.assertEqual(r.intersection_area(30, 10, 5, 5), 0)
+        self.assertEqual(r.intersection_area(10, 40, 5, 5), 0)
         # A region touching corners with the rectangle.
+        self.assertEqual(r.intersection_area(0, 0, 10, 10), 0)
+        self.assertEqual(r.intersection_area(30, 40, 5, 5), 0)
         # A region wholly inside the rectangle.
+        self.assertEqual(r.intersection_area(15, 15, 5, 5), 5*5)
         # A region surrounding the rectangle.
+        self.assertEqual(r.intersection_area(0, 0, 50, 50), 20*30)
         # A region intersecting from the side.
-        # A regin intersecting the corner.
+        self.assertEqual(r.intersection_area(0, 20, 20, 10), 10 * 10)
+        # A region intersecting the corner.
+        self.assertEqual(r.intersection_area(0, 0, 20, 20), 10 * 10)
+        # A region cutting through the middle.
+        self.assertEqual(r.intersection_area(0, 20, 100, 10), 20 * 10)
+
+    def test_split_node(self):
+        max_x = 500
+        max_y = max_x
+        min_cell_size = 10
+        self.rr = RectangleRenderer(max_x, max_y)
+        self.rr.add_rectangle(Rectangle(10, 10, 20, 30, (255, 0, 0)))
+        # self.rr.add_rectangle(Rectangle(50, 20, 100, 50, (255, 255, 0)))
+        # Rectangle inside the cell. No need to split.
+        self.assertFalse(self.rr.cb_split_node(0, 0, 100, 100))
+        # Rectangle surrounding the cell. No need to split.
+        self.assertFalse(self.rr.cb_split_node(15, 15, 10, 10))
+        # Rectangle intersecting the cell. Need to split.
+        self.assertTrue(self.rr.cb_split_node(0, 0, 20, 20))
+
+        # Two rectangles.
+        self.rr = RectangleRenderer(max_x, max_y)
+        # Two rectangles next to each other.
+        self.rr.add_rectangle(Rectangle(10, 10, 20, 20, (255, 0, 0)))
+        self.rr.add_rectangle(Rectangle(40, 10, 20, 20, (255, 255, 0)))
+        # Both rectangles inside the cell. Need to split.
+        self.assertTrue(self.rr.cb_split_node(0, 0, 100, 100))
+        # Both rectangles separate from the cell. No need to split.
+        self.assertFalse(self.rr.cb_split_node(0, 0, 10, 10))
+        # Only one rectangle surrounding the cell. No need to split.
+        self.assertFalse(self.rr.cb_split_node(15, 15, 5, 5))
 
     def test_create_tree(self):
         # self.qt.create_tree(self.rr.cb_split_node)
