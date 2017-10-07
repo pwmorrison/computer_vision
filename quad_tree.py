@@ -1,5 +1,6 @@
 import math
 import unittest
+from PIL import Image, ImageDraw
 
 class QuadTreeNode:
     """
@@ -143,6 +144,8 @@ class RectangleRenderer:
         self.max_y = max_y
         self.rectangles = []
         # self.rectangles = self.create_rectangles()
+        self.im = None
+        self.rendered_im = None
 
     def create_rectangles(self):
         rectangles = [Rectangle(10, 10, 20, 30, (255, 0, 0)),
@@ -151,6 +154,23 @@ class RectangleRenderer:
 
     def add_rectangle(self, r):
         self.rectangles.append(r)
+
+    def get_rendered_im(self):
+        return self.rendered_im
+
+    def init_processing(self):
+        """
+        Initialises the renderer before starting to process the quad tree.
+        """
+        # A pre-rendered image that we can sample from, for each cell in the
+        # quad tree.
+        self.im = Image.new('RGB', (self.max_x, self.max_y), (255, 255, 255))
+        draw = ImageDraw.Draw(self.im)
+        for r in self.rectangles:
+            draw.rectangle([r.x, r.y, r.x + r.w, r.y + r.h], fill=r.colour)
+        self.im.save("prerendered_im.png")
+        # The resulting rendered image.
+        self.rendered_im = Image.new('RGB', (self.max_x, self.max_y))
 
     def cb_split_node(self, x, y, w, h):
         """
@@ -189,9 +209,16 @@ class RectangleRenderer:
         """
         # In this renderer, we need to render the the intersection of the
         # rectangles with this node.
-        # print("Processing node (%d, %d, %d, %d)" % (x, y, w, h))
-
-        pass
+        assert(self.im is not None)
+        assert (self.rendered_im is not None)
+        # Take a square out of the pre-rendered image, and insert it in the
+        # image being rendered.
+        rendered_cell = self.im.crop((x, y, x+w, y+h))
+        self.rendered_im.paste(rendered_cell, (int(x), int(y)))
+        if 1:
+            # Draw a border around the cell, to indicate the cell boundaries.
+            draw = ImageDraw.Draw(self.rendered_im)
+            draw.rectangle([x, y, x+w, y+h], fill=None, outline=(0, 0, 0))
 
 def main():
     max_x = 500
@@ -273,15 +300,21 @@ class TestRectangleMethods(unittest.TestCase):
     def test_create_process_tree(self):
         max_x = 500
         max_y = max_x
-        min_cell_size = 10
+        min_cell_size = 4
         self.rr = RectangleRenderer(max_x, max_y)
         # Two rectangles next to each other.
         self.rr.add_rectangle(Rectangle(10, 10, 20, 20, (255, 0, 0)))
         self.rr.add_rectangle(Rectangle(40, 10, 20, 20, (255, 255, 0)))
+        self.rr.add_rectangle(Rectangle(235, 100, 133, 340, (255, 0, 255)))
+        self.rr.add_rectangle(Rectangle(32, 237, 266, 77, (0, 255, 0)))
+        self.rr.init_processing()
 
         self.qt = QuadTree(max_x, max_y, min_cell_size)
         self.qt.create_tree(self.rr.cb_split_node)
         self.qt.process_tree(self.rr.cb_process_node)
+
+        rendered_im = self.rr.get_rendered_im()
+        rendered_im.save("rendered_im.png")
 
 if __name__ == '__main__':
     unittest.main()
