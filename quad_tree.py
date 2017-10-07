@@ -17,14 +17,23 @@ class QuadTreeNode:
     def set_is_leaf(self, is_leaf):
         self.is_leaf = is_leaf
 
+    def get_is_leaf(self):
+        return self.is_leaf
+
     def set_children(self, tl, tr, bl, br):
         self.tl = tl
         self.tr = tr
         self.bl = bl
         self.br = br
 
+    def get_children(self):
+        return [self.tl, self.tr, self.bl, self.br]
+
     def set_parent(self, parent):
         self.parent = parent
+
+    def __str__(self):
+        return "(%d, %d, %d), is_leaf:%s" % (self.x, self.y, self.dim, self.is_leaf)
 
 
 class QuadTree:
@@ -54,7 +63,7 @@ class QuadTree:
         node_stack = [self.root]
 
         while len(node_stack) != 0:
-            node = node_stack[-1]
+            node = node_stack.pop(-1)
             split = split_node_fn(node.x, node.y, node.dim, node.dim)
             if split and node.dim != self.min_node_dim:
                 # Split the node into 4 children.
@@ -77,7 +86,20 @@ class QuadTree:
                 node_stack.append(br_node)
 
     def process_tree(self, process_node_fn):
-        pass
+        """
+        Processes the tree by visiting each leaf node, and calling the given
+        function.
+        """
+        node_stack = [self.root]
+        while len(node_stack) != 0:
+            node = node_stack.pop(0)
+            if not node.get_is_leaf():
+                children = node.get_children()
+                node_stack.extend(children)
+            else:
+                # This a leaf node that we can process.
+                print(node)
+                process_node_fn(node.x, node.y, node.dim, node.dim)
 
 
 class Rectangle:
@@ -161,14 +183,15 @@ class RectangleRenderer:
 
         return False
 
-    def cb_process_node(self):
+    def cb_process_node(self, x, y, w, h):
         """
         Callback to process the given node, to produce some output.
         """
         # In this renderer, we need to render the the intersection of the
         # rectangles with this node.
-        pass
+        # print("Processing node (%d, %d, %d, %d)" % (x, y, w, h))
 
+        pass
 
 def main():
     max_x = 500
@@ -197,13 +220,6 @@ class TestStringMethods(unittest.TestCase):
 
 
 class TestRectangleMethods(unittest.TestCase):
-
-    def setUp(self):
-        max_x = 500
-        max_y = max_x
-        min_cell_size = 10
-        self.rr = RectangleRenderer(max_x, max_y)
-        self.qt = QuadTree(max_x, max_y, min_cell_size)
 
     def test_rectangle_intersection(self):
         """ Tests the intersection of an area with a rectangle. """
@@ -235,7 +251,6 @@ class TestRectangleMethods(unittest.TestCase):
         min_cell_size = 10
         self.rr = RectangleRenderer(max_x, max_y)
         self.rr.add_rectangle(Rectangle(10, 10, 20, 30, (255, 0, 0)))
-        # self.rr.add_rectangle(Rectangle(50, 20, 100, 50, (255, 255, 0)))
         # Rectangle inside the cell. No need to split.
         self.assertFalse(self.rr.cb_split_node(0, 0, 100, 100))
         # Rectangle surrounding the cell. No need to split.
@@ -255,10 +270,18 @@ class TestRectangleMethods(unittest.TestCase):
         # Only one rectangle surrounding the cell. No need to split.
         self.assertFalse(self.rr.cb_split_node(15, 15, 5, 5))
 
-    def test_create_tree(self):
-        # self.qt.create_tree(self.rr.cb_split_node)
-        # PAUL: Implement this later.
-        pass
+    def test_create_process_tree(self):
+        max_x = 500
+        max_y = max_x
+        min_cell_size = 10
+        self.rr = RectangleRenderer(max_x, max_y)
+        # Two rectangles next to each other.
+        self.rr.add_rectangle(Rectangle(10, 10, 20, 20, (255, 0, 0)))
+        self.rr.add_rectangle(Rectangle(40, 10, 20, 20, (255, 255, 0)))
+
+        self.qt = QuadTree(max_x, max_y, min_cell_size)
+        self.qt.create_tree(self.rr.cb_split_node)
+        self.qt.process_tree(self.rr.cb_process_node)
 
 if __name__ == '__main__':
     unittest.main()
