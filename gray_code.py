@@ -5,6 +5,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import cv2
+import csv
 
 
 def number_to_gray_code_array(num, num_bits):
@@ -311,6 +312,20 @@ def combine_warp_maps(warp_map_horiz, warp_map_vert):
     return cam_proj_warp_map, proj_cam_warp_map
 
 
+def load_warp_map(filename):
+    # The csv file contains the cam position, then the projector position.
+    cam_proj_warp_map = {}
+    proj_cam_warp_map = {}
+    reader = csv.reader(open(filename), delimiter=',')
+    next(reader, None)
+    for row in reader:
+        cam_pt = (int(row[0]), int(row[1]))
+        proj_pt = (int(row[2]), int(row[3]))
+        cam_proj_warp_map[cam_pt] = proj_pt
+        proj_cam_warp_map[proj_pt] = cam_pt
+    return cam_proj_warp_map, proj_cam_warp_map
+
+
 def generate_warp_map(frame_dir, file_name_horiz, file_name_vert, cam_img_dim,
                       proj_img_dim, generate_horizontal=True, generate_vertical=True,
                       use_black_white=True):
@@ -365,10 +380,7 @@ def generate_warp_map(frame_dir, file_name_horiz, file_name_vert, cam_img_dim,
 
     # output_warp_map(warp_map_horiz, warp_map_vert, (width, height), proj_img_dim)
 
-    im_horiz, im_vert = write_warp_map_to_images(
-        frame_dir, warp_map_horiz, warp_map_vert, cam_img_dim, proj_img_dim)
-
-    return warp_map_horiz, warp_map_vert, im_horiz, im_vert
+    return warp_map_horiz, warp_map_vert
 
 
 def find_camera_quad(cam_pts, cam_img_dim):
@@ -438,6 +450,7 @@ def find_homographies(
     for iteration in range(2):
         print("Finding planes, iteration %d" % iteration)
         M, mask = cv2.findHomography(proj_pts, cam_pts, cv2.RANSAC, ransac_thresh)
+        print(M)
         mask = mask.ravel().tolist()
         # print(M)
 
@@ -794,8 +807,11 @@ def main():
         warp_map_vert = None
         generate_horizontal = True
 
-        warp_map_horiz, warp_map_vert, im_horiz, im_vert = generate_warp_map(
+        warp_map_horiz, warp_map_vert = generate_warp_map(
             frame_dir, file_name_horiz, file_name_vert, cam_img_dim, proj_img_dim)
+
+        im_horiz, im_vert = write_warp_map_to_images(
+            frame_dir, warp_map_horiz, warp_map_vert, cam_img_dim, proj_img_dim)
 
         cam_proj_warp_map, proj_cam_warp_map = combine_warp_maps(
             warp_map_horiz, warp_map_vert)
